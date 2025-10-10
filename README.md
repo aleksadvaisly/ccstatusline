@@ -124,7 +124,7 @@
 - **📐 Multi-line Support** - Configure multiple independent status lines
 - **🖥️ Interactive TUI** - Built-in configuration interface using React/Ink
 - **⚙️ Global Options** - Apply consistent formatting across all widgets (padding, separators, bold, background)
-- **🚀 Cross-platform** - Works seamlessly with both Bun and Node.js
+- **🚀 Cross-platform** - Works seamlessly with Node.js (Bun optional for faster startup)
 - **🔧 Flexible Configuration** - Supports custom Claude Code config directory via `CLAUDE_CONFIG_DIR` environment variable
 - **📏 Smart Width Detection** - Automatically adapts to terminal width with flex separators
 - **⚡ Zero Config** - Sensible defaults that work out of the box
@@ -133,13 +133,13 @@
 
 ## 🚀 Quick Start
 
-### No installation needed! Use directly with npx or bunx:
+### No installation needed! Use directly with npx:
 
 ```bash
-# Run the configuration TUI with npm
+# Run the configuration TUI
 npx ccstatusline@latest
 
-# Or with Bun (faster)
+# Or with Bun (optional, faster startup)
 bunx ccstatusline@latest
 ```
 
@@ -173,16 +173,7 @@ ccstatusline works seamlessly on Windows with full feature compatibility across 
 
 ### Installation on Windows
 
-#### Option 1: Using Bun (Recommended)
-```powershell
-# Install Bun for Windows
-irm bun.sh/install.ps1 | iex
-
-# Run ccstatusline
-bunx ccstatusline@latest
-```
-
-#### Option 2: Using Node.js
+#### Option 1: Using Node.js (Recommended)
 ```powershell
 # Using npm
 npx ccstatusline@latest
@@ -192,6 +183,15 @@ yarn dlx ccstatusline@latest
 
 # Or with pnpm
 pnpm dlx ccstatusline@latest
+```
+
+#### Option 2: Using Bun (optional, faster startup)
+```powershell
+# Install Bun for Windows
+irm bun.sh/install.ps1 | iex
+
+# Run ccstatusline
+bunx ccstatusline@latest
 ```
 
 ### Windows-Specific Features
@@ -271,7 +271,10 @@ Add-MpPreference -ExclusionPath "$env:USERPROFILE\.bun\bin"
 ccstatusline works perfectly in WSL environments:
 
 ```bash
-# Install in WSL Ubuntu/Debian
+# Using npm in WSL
+npx ccstatusline@latest
+
+# Or with Bun (optional, faster startup)
 curl -fsSL https://bun.sh/install | bash
 source ~/.bashrc
 bunx ccstatusline@latest
@@ -308,17 +311,17 @@ Configure ccstatusline in your Claude Code settings:
 - Default: `~/.claude/settings.json` (Windows: `%USERPROFILE%\.claude\settings.json`)
 - Custom: Set `CLAUDE_CONFIG_DIR` environment variable to use a different directory
 
-**For Bun users**:
-```json
-{
-  "statusLine": "bunx ccstatusline@latest"
-}
-```
-
-**For npm users**:
+**Configuration**:
 ```json
 {
   "statusLine": "npx ccstatusline@latest"
+}
+```
+
+**Or with Bun (optional, faster startup)**:
+```json
+{
+  "statusLine": "bunx ccstatusline@latest"
 }
 ```
 
@@ -327,7 +330,7 @@ Configure ccstatusline in your Claude Code settings:
 ### Performance on Windows
 
 ccstatusline is optimized for Windows performance:
-- **Bun runtime**: Significantly faster startup times on Windows
+- **Fast startup**: Quick initialization on Windows (even faster with optional Bun runtime)
 - **Caching**: Intelligent caching of git status and file operations
 - **Async operations**: Non-blocking command execution
 - **Memory efficient**: Minimal resource usage
@@ -504,10 +507,10 @@ To generate the API documentation locally:
 
 ```bash
 # Generate documentation
-bun run docs
+npm run docs
 
 # Clean generated documentation
-bun run docs:clean
+npm run docs:clean
 ```
 
 The documentation will be generated in the `docs/` directory and can be viewed by opening `docs/index.html` in your web browser.
@@ -525,29 +528,75 @@ The documentation will be generated in the `docs/` directory and can be viewed b
 
 ### Prerequisites
 
-- [Bun](https://bun.sh) (v1.0+)
+- Node.js 18+
 - Git
-- Node.js 18+ (optional, for npm publishing)
+- [Bun](https://bun.sh) (v1.0+, optional, for faster development)
 
 ### Setup
 
 ```bash
-# Clone the repository
-git clone https://github.com/sirmalloc/ccstatusline.git
+# Clone your fork of the repository
+git clone https://github.com/YOUR_USERNAME/ccstatusline.git
 cd ccstatusline
 
 # Install dependencies
+npm install
+# Or with Bun (faster)
 bun install
 ```
+
+### Running Locally (Fork Development)
+
+When developing on your fork, you can run the project directly from your local filesystem:
+
+```bash
+# Run the TUI configuration interface
+npm run start
+# Or with Bun
+bun run start
+
+# Test with piped input (simulates Claude Code usage)
+echo '{"model":{"display_name":"Claude 3.5 Sonnet"},"transcript_path":"test.jsonl"}' | npm run start
+# Or with Bun
+echo '{"model":{"display_name":"Claude 3.5 Sonnet"},"transcript_path":"test.jsonl"}' | bun run start
+```
+
+### Testing Your Changes with Claude Code
+
+To test your local changes with Claude Code:
+
+```bash
+# 1. Build the project
+npm run build
+
+# 2. Update your Claude Code settings to use the local build
+# Edit ~/.claude/settings.json (or $CLAUDE_CONFIG_DIR/settings.json):
+{
+  "statusLine": "node /absolute/path/to/your/fork/ccstatusline/dist/ccstatusline.js"
+}
+
+# 3. Run Claude Code to see your changes in action
+```
+
+> 💡 **Tip**: Use the absolute path to your local fork's `dist/ccstatusline.js` file in Claude Code settings to test changes without publishing.
 
 ### Development Commands
 
 ```bash
 # Run in TUI mode (configuration)
+npm run start
+# Or with Bun
 bun run src/ccstatusline.ts
 
 # Build for distribution
+npm run build
+# Or with Bun
 bun run build
+
+# Type check and lint
+npm run lint
+# Or with Bun
+bun run lint
 ```
 
 ### 📁 Project Structure
@@ -652,7 +701,6 @@ Give a ⭐ if this project helped you!
 [![npm version](https://img.shields.io/npm/v/ccstatusline.svg)](https://www.npmjs.com/package/ccstatusline)
 [![npm downloads](https://img.shields.io/npm/dm/ccstatusline.svg)](https://www.npmjs.com/package/ccstatusline)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://github.com/sirmalloc/ccstatusline/blob/main/LICENSE)
-[![Made with Bun](https://img.shields.io/badge/Made%20with-Bun-000000.svg?logo=bun)](https://bun.sh)
 
 [![Issues](https://img.shields.io/github/issues/sirmalloc/ccstatusline)](https://github.com/sirmalloc/ccstatusline/issues)
 [![Pull Requests](https://img.shields.io/github/issues-pr/sirmalloc/ccstatusline)](https://github.com/sirmalloc/ccstatusline/pulls)

@@ -2,6 +2,8 @@ import { execSync } from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
 
+// Note: __filename and __dirname are provided by the build banner
+
 // Get package version
 // __PACKAGE_VERSION__ will be replaced at build time
 const PACKAGE_VERSION = '__PACKAGE_VERSION__';

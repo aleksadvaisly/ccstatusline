@@ -11,7 +11,7 @@ import type {
 
 export class GitChangesWidget implements Widget {
     getDefaultColor(): string { return 'yellow'; }
-    getDescription(): string { return 'Shows git changes count (+insertions, -deletions)'; }
+    getDescription(): string { return 'Shows git changes count (+insertions, -deletions, ↑commits ahead)'; }
     getDisplayName(): string { return 'Git Changes'; }
     getEditorDisplay(item: WidgetItem): WidgetEditorDisplay {
         const hideNoGit = item.metadata?.hideNoGit === 'true';
@@ -45,17 +45,18 @@ export class GitChangesWidget implements Widget {
         const hideNoGit = item.metadata?.hideNoGit === 'true';
 
         if (context.isPreview) {
-            return '(+42,-10)';
+            return '(+42,-10,↑3)';
         }
 
         const changes = this.getGitChanges();
-        if (changes)
-            return `(+${changes.insertions},-${changes.deletions})`;
-        else
-            return hideNoGit ? null : '(no git)';
+        if (changes) {
+            const aheadInfo = changes.commitsAhead > 0 ? `,↑${changes.commitsAhead}` : '';
+            return `(+${changes.insertions},-${changes.deletions}${aheadInfo})`;
+        }
+        return hideNoGit ? null : '(no git)';
     }
 
-    private getGitChanges(): { insertions: number; deletions: number } | null {
+    private getGitChanges(): { insertions: number; deletions: number; commitsAhead: number } | null {
         try {
             let totalInsertions = 0;
             let totalDeletions = 0;
@@ -84,7 +85,18 @@ export class GitChangesWidget implements Widget {
                 totalDeletions += deleteMatch?.[1] ? parseInt(deleteMatch[1], 10) : 0;
             }
 
-            return { insertions: totalInsertions, deletions: totalDeletions };
+            let commitsAhead = 0;
+            try {
+                const aheadOutput = execSync('git rev-list --count @{u}..HEAD', {
+                    encoding: 'utf8',
+                    stdio: ['pipe', 'pipe', 'ignore']
+                }).trim();
+                commitsAhead = parseInt(aheadOutput, 10) || 0;
+            } catch {
+                commitsAhead = 0;
+            }
+
+            return { insertions: totalInsertions, deletions: totalDeletions, commitsAhead };
         } catch {
             return null;
         }
