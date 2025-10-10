@@ -211,6 +211,9 @@ export const App: React.FC = () => {
         case 'install':
             handleInstallUninstall();
             break;
+        case 'reinstall':
+            setScreen('install');
+            break;
         case 'save':
             await saveSettings(settings);
             setOriginalSettings(JSON.parse(JSON.stringify(settings)) as Settings); // Update original after save

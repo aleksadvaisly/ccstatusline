@@ -11,7 +11,7 @@ import type {
 
 export class GitBranchWidget implements Widget {
     getDefaultColor(): string { return 'magenta'; }
-    getDescription(): string { return 'Shows the current git branch name'; }
+    getDescription(): string { return 'Shows the current git branch name with * for changes and ↑ for unpushed commits'; }
     getDisplayName(): string { return 'Git Branch'; }
     getEditorDisplay(item: WidgetItem): WidgetEditorDisplay {
         const hideNoGit = item.metadata?.hideNoGit === 'true';
@@ -45,12 +45,23 @@ export class GitBranchWidget implements Widget {
         const hideNoGit = item.metadata?.hideNoGit === 'true';
 
         if (context.isPreview) {
-            return item.rawValue ? 'main' : '⎇ main';
+            return item.rawValue ? 'main *' : '⎇ main *';
         }
 
         const branch = this.getGitBranch();
-        if (branch)
-            return item.rawValue ? branch : `⎇ ${branch}`;
+        if (branch) {
+            const hasChanges = this.hasGitChanges();
+            const commitsAhead = this.getCommitsAhead();
+
+            let indicator = '';
+            if (hasChanges) {
+                indicator = ' *';
+            } else if (commitsAhead > 0) {
+                indicator = ' ↑';
+            }
+
+            return item.rawValue ? `${branch}${indicator}` : `⎇ ${branch}${indicator}`;
+        }
 
         return hideNoGit ? null : '⎇ no git';
     }
@@ -64,6 +75,30 @@ export class GitBranchWidget implements Widget {
             return branch || null;
         } catch {
             return null;
+        }
+    }
+
+    private hasGitChanges(): boolean {
+        try {
+            const status = execSync('git status --porcelain', {
+                encoding: 'utf8',
+                stdio: ['pipe', 'pipe', 'ignore']
+            }).trim();
+            return status.length > 0;
+        } catch {
+            return false;
+        }
+    }
+
+    private getCommitsAhead(): number {
+        try {
+            const count = execSync('git rev-list --count @{u}..HEAD', {
+                encoding: 'utf8',
+                stdio: ['pipe', 'pipe', 'ignore']
+            }).trim();
+            return parseInt(count, 10) || 0;
+        } catch {
+            return 0;
         }
     }
 

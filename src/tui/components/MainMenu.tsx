@@ -30,7 +30,8 @@ export const MainMenu: React.FC<MainMenuProps> = ({ onSelect, isClaudeInstalled,
         { label: '💻 Terminal Options', value: 'terminalConfig', selectable: true },
         { label: '🌐 Global Overrides', value: 'globalOverrides', selectable: true },
         { label: '', value: '_gap2', selectable: false },  // Visual gap
-        { label: isClaudeInstalled ? '🔌 Uninstall from Claude Code' : '📦 Install to Claude Code', value: 'install', selectable: true }
+        { label: isClaudeInstalled ? '🔌 Uninstall from Claude Code' : '📦 Install to Claude Code', value: 'install', selectable: true },
+        { label: '🔄 Reinstall to Claude Code', value: 'reinstall', selectable: true }
     ];
 
     if (hasChanges) {
@@ -68,6 +69,7 @@ export const MainMenu: React.FC<MainMenuProps> = ({ onSelect, isClaudeInstalled,
             install: isClaudeInstalled
                 ? 'Remove ccstatusline from your Claude Code settings'
                 : 'Add ccstatusline to your Claude Code settings for automatic status line rendering',
+            reinstall: 'Reinstall or update ccstatusline in Claude Code settings (useful after updating the package)',
             terminalConfig: 'Configure terminal-specific settings for optimal display',
             save: 'Save all changes and exit the configuration tool',
             exit: hasChanges
