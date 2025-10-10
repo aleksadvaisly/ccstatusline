@@ -542,7 +542,12 @@ export function preRenderAllWidgets(
                 continue;
             }
 
-            const widgetText = widgetImpl.render(widget, context, settings) ?? '';
+            const widgetText = widgetImpl.render(widget, context, settings);
+
+            // If widget returns null, skip it entirely (don't render)
+            if (widgetText === null) {
+                continue;
+            }
 
             // Store the rendered content without padding (padding is applied later)
             // Use stringWidth to properly calculate Unicode character display width
