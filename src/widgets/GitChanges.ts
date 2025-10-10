@@ -44,8 +44,22 @@ export class GitChangesWidget implements Widget {
 
         const changes = this.getGitChanges();
         if (changes) {
-            const aheadInfo = changes.commitsAhead > 0 ? `,↑${changes.commitsAhead}` : '';
-            return `(+${changes.insertions},-${changes.deletions}${aheadInfo})`;
+            const parts: string[] = [];
+            if (changes.insertions > 0) {
+                parts.push(`+${changes.insertions}`);
+            }
+            if (changes.deletions > 0) {
+                parts.push(`-${changes.deletions}`);
+            }
+            if (changes.commitsAhead > 0) {
+                parts.push(`↑${changes.commitsAhead}`);
+            }
+
+            if (parts.length === 0) {
+                return null;
+            }
+
+            return `(${parts.join(',')})`;
         }
         return hideNoGit ? null : '(no git)';
     }

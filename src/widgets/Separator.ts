@@ -22,14 +22,23 @@ export class SeparatorWidget implements Widget {
             { id: 'dash', label: ' - ' },
             { id: 'comma', label: ', ' },
             { id: 'dot', label: ' · ' },
-            { id: 'space', label: '  ' },
-            { id: 'double-space', label: '   ' }
+            { id: 'single', label: ' ' },
+            { id: 'double', label: '  ' },
+            { id: 'triple', label: '   ' }
         ];
     }
 
     getEditorDisplay(item: WidgetItem): WidgetEditorDisplay {
         const styles = this.getAvailableStyles();
-        const currentStyle = item.displayStyle ?? 'pipe';
+        let currentStyle = item.displayStyle ?? 'pipe';
+
+        // Backward compatibility for old style names
+        if (currentStyle === 'space') {
+            currentStyle = 'double';
+        } else if (currentStyle === 'double-space') {
+            currentStyle = 'triple';
+        }
+
         const styleObj = styles.find(s => s.id === currentStyle);
         const display = styleObj ? styleObj.label : ' | ';
 
@@ -41,7 +50,15 @@ export class SeparatorWidget implements Widget {
 
     render(item: WidgetItem, context: RenderContext, settings: Settings): string | null {
         const styles = this.getAvailableStyles();
-        const currentStyle = item.displayStyle ?? (item.character ? this.mapCharacterToStyle(item.character) : 'pipe');
+        let currentStyle = item.displayStyle ?? (item.character ? this.mapCharacterToStyle(item.character) : 'pipe');
+
+        // Backward compatibility for old style names
+        if (currentStyle === 'space') {
+            currentStyle = 'double';
+        } else if (currentStyle === 'double-space') {
+            currentStyle = 'triple';
+        }
+
         const styleObj = styles.find(s => s.id === currentStyle);
 
         return styleObj ? styleObj.label : ' | ';
@@ -53,8 +70,9 @@ export class SeparatorWidget implements Widget {
         case '-': return 'dash';
         case ',': return 'comma';
         case '·': return 'dot';
-        case ' ': return 'space';
-        case '  ': return 'double-space';
+        case ' ': return 'single';
+        case '  ': return 'double';
+        case '   ': return 'triple';
         default: return 'pipe';
         }
     }
