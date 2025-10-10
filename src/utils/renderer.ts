@@ -37,10 +37,6 @@ function isFlexSeparator(widget: WidgetItem): boolean {
     return getWidgetCategory(widget) === 'dynamic';
 }
 
-// Helper function to check if widget is separator-like (separator or icon)
-function isSeparatorLike(widget: WidgetItem): boolean {
-    return isSeparator(widget) || widget.type === 'icon';
-}
 
 // Helper function to format token counts
 export function formatTokens(count: number): string {
@@ -92,8 +88,8 @@ function renderPowerlineStatusLine(
     // Get color level from settings
     const colorLevel = getColorLevelString((settings.colorLevel as number) as (0 | 1 | 2 | 3));
 
-    // Remove consecutive icon widgets in powerline mode, keeping only the longest one
-    // "Consecutive" also includes icons separated by empty widgets (widgets that render '')
+    // Remove consecutive separator widgets in powerline mode, keeping only the longest one
+    // "Consecutive" also includes separators separated by empty widgets (widgets that render '')
     const widgetsToSkip = new Set<number>();
     let groupStart = -1;
     let groupEnd = -1;
@@ -105,7 +101,7 @@ function renderPowerlineStatusLine(
         const preRendered = preRenderedWidgets[i];
         const hasContent = preRendered && preRendered.content && preRendered.plainLength > 0;
 
-        if (widget.type === 'icon') {
+        if (isSeparator(widget)) {
             if (groupStart === -1) {
                 groupStart = i;
             }
@@ -114,9 +110,9 @@ function renderPowerlineStatusLine(
             // Empty widget - don't break the group, just continue
             continue;
         } else {
-            // Widget with content - end of icon group
+            // Widget with content - end of separator group
             if (groupStart !== -1 && groupEnd > groupStart) {
-                // Found a group of 2+ icon widgets
+                // Found a group of 2+ separator widgets
                 // Find the longest one based on rendered content
                 let longestIdx = groupStart;
                 let longestLength = 0;
@@ -163,7 +159,7 @@ function renderPowerlineStatusLine(
         }
     }
 
-    // Filter out separator and flex-separator widgets in powerline mode, and skip marked icon widgets
+    // Filter out separator and flex-separator widgets in powerline mode, and skip marked separator duplicates
     const filteredWidgets = widgets.filter((widget, idx) =>
         widget.type !== 'separator' &&
         widget.type !== 'flex-separator' &&
@@ -802,8 +798,8 @@ export function renderStatusLine(
     const elements: { content: string; type: string; widget?: WidgetItem }[] = [];
     let hasFlexSeparator = false;
 
-    // Remove consecutive separator-like widgets (separator or icon), keeping only the longest one
-    // "Consecutive" also includes widgets separated by empty widgets (widgets that render '')
+    // Remove consecutive separator widgets, keeping only the longest one
+    // "Consecutive" also includes separators separated by empty widgets (widgets that render '')
     const widgetsToSkip = new Set<number>();
     let groupStart = -1;
     let groupEnd = -1;
@@ -815,7 +811,7 @@ export function renderStatusLine(
         const preRendered = preRenderedWidgets[i];
         const hasContent = preRendered && preRendered.content && preRendered.plainLength > 0;
 
-        if (isSeparatorLike(widget)) {
+        if (isSeparator(widget)) {
             if (groupStart === -1) {
                 groupStart = i;
             }
@@ -824,9 +820,9 @@ export function renderStatusLine(
             // Empty widget - don't break the group, just continue
             continue;
         } else {
-            // Widget with content - end of separator-like group
+            // Widget with content - end of separator group
             if (groupStart !== -1 && groupEnd > groupStart) {
-                // Found a group of 2+ separator-like widgets
+                // Found a group of 2+ separator widgets
                 // Find the longest one based on rendered content
                 let longestIdx = groupStart;
                 let longestLength = 0;
@@ -879,7 +875,7 @@ export function renderStatusLine(
         if (!widget)
             continue;
 
-        // Skip widgets marked for removal (consecutive separator-like widgets)
+        // Skip widgets marked for removal (consecutive separator widgets)
         if (widgetsToSkip.has(i))
             continue;
 
