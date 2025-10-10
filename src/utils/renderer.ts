@@ -601,11 +601,25 @@ export function preRenderAllWidgets(
         const preRenderedLine: PreRenderedWidget[] = [];
 
         for (const widget of lineWidgets) {
-            // Skip separators as they're handled differently
+            // Render separators to capture actual length for deduplication
             if (isSeparator(widget) || isFlexSeparator(widget)) {
+                const widgetImpl = getWidget(widget.type);
+                if (!widgetImpl) {
+                    preRenderedLine.push({
+                        content: '',
+                        plainLength: 0,
+                        widget
+                    });
+                    continue;
+                }
+
+                // Render separator to get actual length
+                const separatorText = widgetImpl.render(widget, context, settings) ?? '';
+                const plainLength = stringWidth(separatorText.replace(ANSI_REGEX, ''));
+
                 preRenderedLine.push({
-                    content: '',  // Separators are handled specially
-                    plainLength: 0,
+                    content: separatorText,
+                    plainLength,
                     widget
                 });
                 continue;
