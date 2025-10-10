@@ -37,6 +37,11 @@ function isFlexSeparator(widget: WidgetItem): boolean {
     return getWidgetCategory(widget) === 'dynamic';
 }
 
+// Helper function to check if widget is separator-like (separator or icon)
+function isSeparatorLike(widget: WidgetItem): boolean {
+    return isSeparator(widget) || widget.type === 'icon';
+}
+
 // Helper function to format token counts
 export function formatTokens(count: number): string {
     if (count >= 1000000)
@@ -87,8 +92,82 @@ function renderPowerlineStatusLine(
     // Get color level from settings
     const colorLevel = getColorLevelString((settings.colorLevel as number) as (0 | 1 | 2 | 3));
 
-    // Filter out separator and flex-separator widgets in powerline mode
-    const filteredWidgets = widgets.filter(widget => widget.type !== 'separator' && widget.type !== 'flex-separator'
+    // Remove consecutive icon widgets in powerline mode, keeping only the longest one
+    // "Consecutive" also includes icons separated by empty widgets (widgets that render '')
+    const widgetsToSkip = new Set<number>();
+    let groupStart = -1;
+    let groupEnd = -1;
+
+    for (let i = 0; i < widgets.length; i++) {
+        const widget = widgets[i];
+        if (!widget) continue;
+
+        const preRendered = preRenderedWidgets[i];
+        const hasContent = preRendered && preRendered.content && preRendered.plainLength > 0;
+
+        if (widget.type === 'icon') {
+            if (groupStart === -1) {
+                groupStart = i;
+            }
+            groupEnd = i;
+        } else if (!hasContent) {
+            // Empty widget - don't break the group, just continue
+            continue;
+        } else {
+            // Widget with content - end of icon group
+            if (groupStart !== -1 && groupEnd > groupStart) {
+                // Found a group of 2+ icon widgets
+                // Find the longest one based on rendered content
+                let longestIdx = groupStart;
+                let longestLength = 0;
+
+                for (let j = groupStart; j <= groupEnd; j++) {
+                    const preRendered = preRenderedWidgets[j];
+                    const length = preRendered?.plainLength ?? 0;
+                    if (length > longestLength) {
+                        longestLength = length;
+                        longestIdx = j;
+                    }
+                }
+
+                // Mark all except longest for skipping
+                for (let j = groupStart; j <= groupEnd; j++) {
+                    if (j !== longestIdx) {
+                        widgetsToSkip.add(j);
+                    }
+                }
+            }
+            groupStart = -1;
+            groupEnd = -1;
+        }
+    }
+
+    // Handle case where group ends at the end of array
+    if (groupStart !== -1 && groupEnd > groupStart) {
+        let longestIdx = groupStart;
+        let longestLength = 0;
+
+        for (let j = groupStart; j <= groupEnd; j++) {
+            const preRendered = preRenderedWidgets[j];
+            const length = preRendered?.plainLength ?? 0;
+            if (length > longestLength) {
+                longestLength = length;
+                longestIdx = j;
+            }
+        }
+
+        for (let j = groupStart; j <= groupEnd; j++) {
+            if (j !== longestIdx) {
+                widgetsToSkip.add(j);
+            }
+        }
+    }
+
+    // Filter out separator and flex-separator widgets in powerline mode, and skip marked icon widgets
+    const filteredWidgets = widgets.filter((widget, idx) =>
+        widget.type !== 'separator' &&
+        widget.type !== 'flex-separator' &&
+        !widgetsToSkip.has(idx)
     );
 
     if (filteredWidgets.length === 0)
@@ -723,10 +802,85 @@ export function renderStatusLine(
     const elements: { content: string; type: string; widget?: WidgetItem }[] = [];
     let hasFlexSeparator = false;
 
+    // Remove consecutive separator-like widgets (separator or icon), keeping only the longest one
+    // "Consecutive" also includes widgets separated by empty widgets (widgets that render '')
+    const widgetsToSkip = new Set<number>();
+    let groupStart = -1;
+    let groupEnd = -1;
+
+    for (let i = 0; i < widgets.length; i++) {
+        const widget = widgets[i];
+        if (!widget) continue;
+
+        const preRendered = preRenderedWidgets[i];
+        const hasContent = preRendered && preRendered.content && preRendered.plainLength > 0;
+
+        if (isSeparatorLike(widget)) {
+            if (groupStart === -1) {
+                groupStart = i;
+            }
+            groupEnd = i;
+        } else if (!hasContent) {
+            // Empty widget - don't break the group, just continue
+            continue;
+        } else {
+            // Widget with content - end of separator-like group
+            if (groupStart !== -1 && groupEnd > groupStart) {
+                // Found a group of 2+ separator-like widgets
+                // Find the longest one based on rendered content
+                let longestIdx = groupStart;
+                let longestLength = 0;
+
+                for (let j = groupStart; j <= groupEnd; j++) {
+                    const preRendered = preRenderedWidgets[j];
+                    const length = preRendered?.plainLength ?? 0;
+                    if (length > longestLength) {
+                        longestLength = length;
+                        longestIdx = j;
+                    }
+                }
+
+                // Mark all except longest for skipping
+                for (let j = groupStart; j <= groupEnd; j++) {
+                    if (j !== longestIdx) {
+                        widgetsToSkip.add(j);
+                    }
+                }
+            }
+            groupStart = -1;
+            groupEnd = -1;
+        }
+    }
+
+    // Handle case where group ends at the end of array
+    if (groupStart !== -1 && groupEnd > groupStart) {
+        let longestIdx = groupStart;
+        let longestLength = 0;
+
+        for (let j = groupStart; j <= groupEnd; j++) {
+            const preRendered = preRenderedWidgets[j];
+            const length = preRendered?.plainLength ?? 0;
+            if (length > longestLength) {
+                longestLength = length;
+                longestIdx = j;
+            }
+        }
+
+        for (let j = groupStart; j <= groupEnd; j++) {
+            if (j !== longestIdx) {
+                widgetsToSkip.add(j);
+            }
+        }
+    }
+
     // Build elements based on configured widgets
     for (let i = 0; i < widgets.length; i++) {
         const widget = widgets[i];
         if (!widget)
+            continue;
+
+        // Skip widgets marked for removal (consecutive separator-like widgets)
+        if (widgetsToSkip.has(i))
             continue;
 
         // Handle separators specially (they're not widgets)
