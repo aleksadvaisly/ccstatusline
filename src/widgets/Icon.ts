@@ -20,13 +20,13 @@ export class IconWidget implements Widget {
             { id: 'chart', label: '📊' },
             { id: 'clock', label: '🕐' },
             { id: 'wrench', label: '🔧' },
-            { id: 'gear', label: '⚙️' },
+            { id: 'gear', label: '⚙' },
             { id: 'brain', label: '🧠' },
             { id: 'page', label: '📄' },
-            { id: 'pencil', label: '✏️' },
+            { id: 'pencil', label: '✏' },
             { id: 'magnifier', label: '🔍' },
             { id: 'flag', label: '🏁' },
-            { id: 'eye', label: '👁️' }
+            { id: 'eye', label: '👀' }
         ];
     }
 
