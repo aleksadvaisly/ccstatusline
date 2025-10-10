@@ -18,3 +18,5 @@ export { CustomTextWidget } from './CustomText';
 export { CustomCommandWidget } from './CustomCommand';
 export { BlockTimerWidget } from './BlockTimer';
 export { CurrentWorkingDirWidget } from './CurrentWorkingDir';
+export { SeparatorWidget } from './Separator';
+export { FlexSeparatorWidget } from './FlexSeparator';

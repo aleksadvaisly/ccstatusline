@@ -11,7 +11,8 @@ export const WidgetItemSchema = z.object({
     backgroundColor: z.string().optional(),
     bold: z.boolean().optional(),
     character: z.string().optional(),
-    rawValue: z.boolean().optional(),
+    rawValue: z.boolean().optional(), // Legacy, replaced by displayStyle
+    displayStyle: z.string().optional(),
     customText: z.string().optional(),
     commandPath: z.string().optional(),
     maxWidth: z.number().optional(),
@@ -30,6 +31,13 @@ export interface WidgetEditorDisplay {
     modifierText?: string;
 }
 
+export interface DisplayStyle {
+    id: string;
+    label: string;
+}
+
+export type WidgetCategory = 'content' | 'separator' | 'dynamic';
+
 export interface Widget {
     getDefaultColor(): string;
     getDescription(): string;
@@ -38,9 +46,12 @@ export interface Widget {
     render(item: WidgetItem, context: RenderContext, settings: Settings): string | null;
     getCustomKeybinds?(): CustomKeybind[];
     renderEditor?(props: WidgetEditorProps): React.ReactElement | null;
-    supportsRawValue(): boolean;
+    supportsRawValue(): boolean; // Legacy, use getAvailableStyles()
+    getAvailableStyles?(): DisplayStyle[];
     supportsColors(item: WidgetItem): boolean;
     handleEditorAction?(action: string, item: WidgetItem): WidgetItem | null;
+    getCategory?(): WidgetCategory; // Category for special rendering behavior (defaults to 'content')
+    canInheritColors?(): boolean; // Can this widget inherit colors from previous widget?
 }
 
 export interface WidgetEditorProps {

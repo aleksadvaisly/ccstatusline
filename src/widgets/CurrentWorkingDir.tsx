@@ -10,6 +10,7 @@ import type { RenderContext } from '../types/RenderContext';
 import type { Settings } from '../types/Settings';
 import type {
     CustomKeybind,
+    DisplayStyle,
     Widget,
     WidgetEditorDisplay,
     WidgetEditorProps,
@@ -20,11 +21,29 @@ export class CurrentWorkingDirWidget implements Widget {
     getDefaultColor(): string { return 'blue'; }
     getDescription(): string { return 'Shows the current working directory'; }
     getDisplayName(): string { return 'Current Working Dir'; }
+
+    getAvailableStyles(): DisplayStyle[] {
+        return [
+            { id: 'labeled', label: 'Folder: /path' },
+            { id: 'plain', label: '/path' },
+            { id: 'basename', label: 'folder-name' }
+        ];
+    }
+
     getEditorDisplay(item: WidgetItem): WidgetEditorDisplay {
         const segments = item.metadata?.segments ? parseInt(item.metadata.segments, 10) : undefined;
         const fishStyle = item.metadata?.fishStyle === 'true';
         const modifiers: string[] = [];
 
+        // Show display style
+        const styles = this.getAvailableStyles();
+        const currentStyle = item.displayStyle ?? (item.rawValue ? 'plain' : 'labeled');
+        const style = styles.find(s => s.id === currentStyle);
+        if (style) {
+            modifiers.push(style.label);
+        }
+
+        // Show legacy modifiers if present
         if (fishStyle) {
             modifiers.push('fish-style');
         } else if (segments && segments > 0) {
@@ -73,49 +92,45 @@ export class CurrentWorkingDirWidget implements Widget {
         const segments = item.metadata?.segments ? parseInt(item.metadata.segments, 10) : undefined;
         const fishStyle = item.metadata?.fishStyle === 'true';
 
-        if (context.isPreview) {
-            let previewPath: string;
-
-            if (fishStyle) {
-                previewPath = '~/D/P/my-project';
-            } else if (segments && segments > 0) {
-                if (segments === 1) {
-                    previewPath = '.../project';
-                } else {
-                    previewPath = '.../example/project';
-                }
-            } else {
-                previewPath = '/Users/example/Documents/Projects/my-project';
-            }
-
-            return item.rawValue ? previewPath : `cwd: ${previewPath}`;
-        }
-
-        const cwd = context.data?.cwd;
+        const cwd = context.isPreview ? '/Users/example/Documents/Projects/my-project' : context.data?.cwd;
         if (!cwd)
             return null;
 
+        // Determine display style (support legacy rawValue)
+        const displayStyle = item.displayStyle ?? (item.rawValue ? 'plain' : 'labeled');
+
+        // Calculate path based on legacy options or display style
         let displayPath = cwd;
 
+        // Apply legacy transformations if present (takes priority)
         if (fishStyle) {
             displayPath = this.abbreviatePath(cwd);
         } else if (segments && segments > 0) {
-            // Support both POSIX ('/') and Windows ('\\') separators; preserve original separator in output
             const useBackslash = cwd.includes('\\') && !cwd.includes('/');
             const outSep = useBackslash ? '\\' : '/';
             const pathParts = cwd.split(/[\\/]+/);
-
-            // Remove empty strings from splitting (e.g., leading slash or UNC leading separators)
             const filteredParts = pathParts.filter(part => part !== '');
 
             if (filteredParts.length > segments) {
-                // Take the last N segments and join with the detected separator
                 const selectedSegments = filteredParts.slice(-segments);
                 displayPath = '...' + outSep + selectedSegments.join(outSep);
             }
+        } else if (displayStyle === 'basename') {
+            // Extract basename
+            const pathParts = cwd.split(/[\\/]+/);
+            const filteredParts = pathParts.filter(part => part !== '');
+            displayPath = filteredParts[filteredParts.length - 1] ?? cwd;
         }
 
-        return item.rawValue ? displayPath : `cwd: ${displayPath}`;
+        // Apply display style formatting
+        switch (displayStyle) {
+        case 'plain':
+        case 'basename':
+            return displayPath;
+        case 'labeled':
+        default:
+            return `Folder: ${displayPath}`;
+        }
     }
 
     getCustomKeybinds(): CustomKeybind[] {

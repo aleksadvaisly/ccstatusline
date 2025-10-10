@@ -109,15 +109,15 @@ export function isBunxAvailable(): boolean {
     }
 }
 
-export async function installStatusLine(useBunx = false): Promise<void> {
+export async function installStatusLine(useBunx = false, customCommand?: string): Promise<void> {
     const settings = await loadClaudeSettings();
 
     // Update settings with our status line (confirmation already handled in TUI)
     settings.statusLine = {
         type: 'command',
-        command: useBunx
+        command: customCommand ?? (useBunx
             ? CCSTATUSLINE_COMMANDS.BUNX
-            : CCSTATUSLINE_COMMANDS.NPM,
+            : CCSTATUSLINE_COMMANDS.NPM),
         padding: 0
     };
 

@@ -39,6 +39,8 @@ import { getPackageVersion } from '../utils/terminal';
 import {
     ColorMenu,
     ConfirmDialog,
+    CustomPathInput,
+    ExitDialog,
     GlobalOverridesMenu,
     InstallMenu,
     ItemsEditor,
@@ -55,7 +57,7 @@ export const App: React.FC = () => {
     const [settings, setSettings] = useState<Settings | null>(null);
     const [originalSettings, setOriginalSettings] = useState<Settings | null>(null);
     const [hasChanges, setHasChanges] = useState(false);
-    const [screen, setScreen] = useState<'main' | 'lines' | 'items' | 'colorLines' | 'colors' | 'terminalWidth' | 'terminalConfig' | 'globalOverrides' | 'confirm' | 'powerline' | 'install'>('main');
+    const [screen, setScreen] = useState<'main' | 'lines' | 'items' | 'colorLines' | 'colors' | 'terminalWidth' | 'terminalConfig' | 'globalOverrides' | 'confirm' | 'powerline' | 'install' | 'customPath' | 'exitDialog'>('main');
     const [selectedLine, setSelectedLine] = useState(0);
     const [menuSelections, setMenuSelections] = useState<Record<string, number>>({});
     const [confirmDialog, setConfirmDialog] = useState<{ message: string; action: () => Promise<void> } | null>(null);
@@ -167,29 +169,87 @@ export const App: React.FC = () => {
         handleInstallSelection(CCSTATUSLINE_COMMANDS.BUNX, 'bunx', true);
     }, [handleInstallSelection]);
 
-    if (!settings) {
-        return <Text>Loading settings...</Text>;
-    }
+    const handleCustomPathSubmit = useCallback((customPath: string) => {
+        const command = `node ${customPath}`;
+        void getExistingStatusLine().then((existing) => {
+            const message = existing
+                ? `This will modify ${getClaudeSettingsPath()}\n\nReplace "${existing}" with:\n"${command}"?`
+                : `This will modify ${getClaudeSettingsPath()} to add:\n"${command}"\n\nContinue?`;
 
-    const handleInstallUninstall = () => {
-        if (isClaudeInstalled) {
-            // Uninstall
             setConfirmDialog({
-                message: `This will remove ccstatusline from ${getClaudeSettingsPath()}. Continue?`,
+                message,
                 action: async () => {
-                    await uninstallStatusLine();
-                    setIsClaudeInstalled(false);
-                    setExistingStatusLine(null);
+                    await installStatusLine(false, command);
+                    setIsClaudeInstalled(true);
+                    setExistingStatusLine(command);
                     setScreen('main');
                     setConfirmDialog(null);
                 }
             });
             setScreen('confirm');
-        } else {
-            // Show install menu to select npx or bunx
+        });
+    }, []);
+
+    const handleExitSaveOnly = useCallback(async () => {
+        if (settings) {
+            await saveSettings(settings);
+            setOriginalSettings(JSON.parse(JSON.stringify(settings)) as Settings);
+            setHasChanges(false);
+            setSaveMessage('✓ Configuration saved');
+            setScreen('main');
+        }
+    }, [settings]);
+
+    const handleExitSaveAndReinstall = useCallback(async () => {
+        if (settings) {
+            await saveSettings(settings);
+            setOriginalSettings(JSON.parse(JSON.stringify(settings)) as Settings);
+            setHasChanges(false);
+            // Trigger reinstall
             setScreen('install');
         }
-    };
+    }, [settings]);
+
+    const handleExitCancelEditing = useCallback(() => {
+        exit();
+    }, [exit]);
+
+    const handleUninstall = useCallback(() => {
+        setConfirmDialog({
+            message: `This will remove ccstatusline from ${getClaudeSettingsPath()}. Continue?`,
+            action: async () => {
+                await uninstallStatusLine();
+                setIsClaudeInstalled(false);
+                setExistingStatusLine(null);
+                setScreen('main');
+                setConfirmDialog(null);
+            }
+        });
+        setScreen('confirm');
+    }, []);
+
+    const handleSaveAndBackToMain = useCallback(async () => {
+        if (settings) {
+            await saveSettings(settings);
+            setOriginalSettings(JSON.parse(JSON.stringify(settings)) as Settings);
+            setHasChanges(false);
+            setSaveMessage('✓ Configuration saved');
+            setScreen('main');
+        }
+    }, [settings]);
+
+    const handleSaveAndInstall = useCallback(async () => {
+        if (settings) {
+            await saveSettings(settings);
+            setOriginalSettings(JSON.parse(JSON.stringify(settings)) as Settings);
+            setHasChanges(false);
+            setScreen('install');
+        }
+    }, [settings]);
+
+    if (!settings) {
+        return <Text>Loading settings...</Text>;
+    }
 
     const handleMainMenuSelect = async (value: string) => {
         switch (value) {
@@ -209,19 +269,14 @@ export const App: React.FC = () => {
             setScreen('powerline');
             break;
         case 'install':
-            handleInstallUninstall();
-            break;
-        case 'reinstall':
             setScreen('install');
             break;
-        case 'save':
-            await saveSettings(settings);
-            setOriginalSettings(JSON.parse(JSON.stringify(settings)) as Settings); // Update original after save
-            setHasChanges(false);
-            exit();
-            break;
         case 'exit':
-            exit();
+            if (hasChanges) {
+                setScreen('exitDialog');
+            } else {
+                exit();
+            }
             break;
         }
     };
@@ -284,7 +339,6 @@ export const App: React.FC = () => {
                             }
                             void handleMainMenuSelect(value);
                         }}
-                        isClaudeInstalled={isClaudeInstalled}
                         hasChanges={hasChanges}
                         initialSelection={menuSelections.main}
                         powerlineFontStatus={powerlineFontStatus}
@@ -309,6 +363,9 @@ export const App: React.FC = () => {
                         initialSelection={menuSelections.lines}
                         title='Select Line to Edit Items'
                         allowEditing={true}
+                        hasChanges={hasChanges}
+                        onSaveAndBack={() => void handleSaveAndBackToMain()}
+                        onSaveAndInstall={() => void handleSaveAndInstall()}
                     />
                 )}
                 {screen === 'items' && (
@@ -343,6 +400,9 @@ export const App: React.FC = () => {
                         blockIfPowerlineActive={true}
                         settings={settings}
                         allowEditing={false}
+                        hasChanges={hasChanges}
+                        onSaveAndBack={() => void handleSaveAndBackToMain()}
+                        onSaveAndInstall={() => void handleSaveAndInstall()}
                     />
                 )}
                 {screen === 'colors' && (
@@ -413,14 +473,36 @@ export const App: React.FC = () => {
                         }}
                     />
                 )}
+                {screen === 'exitDialog' && (
+                    <ExitDialog
+                        onSaveOnly={() => void handleExitSaveOnly()}
+                        onSaveAndReinstall={() => void handleExitSaveAndReinstall()}
+                        onCancelEditing={handleExitCancelEditing}
+                        onBackToMain={() => { setScreen('main'); }}
+                    />
+                )}
                 {screen === 'install' && (
                     <InstallMenu
                         bunxAvailable={isBunxAvailable()}
                         existingStatusLine={existingStatusLine}
                         onSelectNpx={handleNpxInstall}
                         onSelectBunx={handleBunxInstall}
+                        onSelectCustom={() => {
+                            setScreen('customPath');
+                        }}
+                        onUninstall={handleUninstall}
                         onCancel={() => {
                             setScreen('main');
+                        }}
+                    />
+                )}
+
+                {screen === 'customPath' && (
+                    <CustomPathInput
+                        existingStatusLine={existingStatusLine}
+                        onSubmit={handleCustomPathSubmit}
+                        onCancel={() => {
+                            setScreen('install');
                         }}
                     />
                 )}

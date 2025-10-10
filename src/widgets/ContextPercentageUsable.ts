@@ -2,6 +2,7 @@ import type { RenderContext } from '../types/RenderContext';
 import type { Settings } from '../types/Settings';
 import type {
     CustomKeybind,
+    DisplayStyle,
     Widget,
     WidgetEditorDisplay,
     WidgetItem
@@ -11,52 +12,71 @@ export class ContextPercentageUsableWidget implements Widget {
     getDefaultColor(): string { return 'green'; }
     getDescription(): string { return 'Shows percentage of usable context window used or remaining (of 160k tokens before auto-compact)'; }
     getDisplayName(): string { return 'Context % (usable)'; }
+
+    getAvailableStyles(): DisplayStyle[] {
+        return [
+            { id: 'remaining-plain', label: '88%' },
+            { id: 'remaining-short', label: 'Left: 88%' },
+            { id: 'remaining-long', label: 'Usable remaining: 88%' },
+            { id: 'used-plain', label: '12%' },
+            { id: 'used-short', label: 'Used: 12%' },
+            { id: 'used-long', label: 'Usable used: 12%' }
+        ];
+    }
+
     getEditorDisplay(item: WidgetItem): WidgetEditorDisplay {
-        const isInverse = item.metadata?.inverse === 'true';
-        const modifiers: string[] = [];
-
-        if (isInverse) {
-            modifiers.push('remaining');
-        }
-
         return {
-            displayText: this.getDisplayName(),
-            modifierText: modifiers.length > 0 ? `(${modifiers.join(', ')})` : undefined
+            displayText: this.getDisplayName()
         };
     }
 
-    handleEditorAction(action: string, item: WidgetItem): WidgetItem | null {
-        if (action === 'toggle-inverse') {
-            const currentState = item.metadata?.inverse === 'true';
-            return {
-                ...item,
-                metadata: {
-                    ...item.metadata,
-                    inverse: (!currentState).toString()
-                }
-            };
-        }
-        return null;
-    }
-
     render(item: WidgetItem, context: RenderContext, settings: Settings): string | null {
-        const isInverse = item.metadata?.inverse === 'true';
+        // Determine style (with backward compatibility)
+        let style = item.displayStyle;
+        if (!style) {
+            const isInverse = item.metadata?.inverse === 'true';
+            if (isInverse) {
+                style = item.rawValue ? 'remaining-plain' : 'remaining-short';
+            } else {
+                style = item.rawValue ? 'used-plain' : 'used-short';
+            }
+        }
+
+        // Calculate percentages
+        let usedPercentage: number;
+        let remainingPercentage: number;
 
         if (context.isPreview) {
-            const previewValue = isInverse ? '88.4%' : '11.6%';
-            return item.rawValue ? previewValue : `Ctx(u): ${previewValue}`;
+            usedPercentage = 11.6;
+            remainingPercentage = 88.4;
         } else if (context.tokenMetrics) {
-            const usedPercentage = Math.min(100, (context.tokenMetrics.contextLength / 160000) * 100);
-            const displayPercentage = isInverse ? (100 - usedPercentage) : usedPercentage;
-            return item.rawValue ? `${displayPercentage.toFixed(1)}%` : `Ctx(u): ${displayPercentage.toFixed(1)}%`;
+            usedPercentage = Math.min(100, (context.tokenMetrics.contextLength / 160000) * 100);
+            remainingPercentage = 100 - usedPercentage;
+        } else {
+            return null;
         }
-        return null;
+
+        // Format based on style
+        switch (style) {
+            case 'remaining-plain':
+                return `${remainingPercentage.toFixed(1)}%`;
+            case 'remaining-short':
+                return `Left: ${remainingPercentage.toFixed(1)}%`;
+            case 'remaining-long':
+                return `Usable remaining: ${remainingPercentage.toFixed(1)}%`;
+            case 'used-plain':
+                return `${usedPercentage.toFixed(1)}%`;
+            case 'used-short':
+                return `Used: ${usedPercentage.toFixed(1)}%`;
+            case 'used-long':
+                return `Usable used: ${usedPercentage.toFixed(1)}%`;
+            default:
+                return `${usedPercentage.toFixed(1)}%`;
+        }
     }
 
     getCustomKeybinds(): CustomKeybind[] {
-        return [
-            { key: 'l', label: '(l)eft/remaining', action: 'toggle-inverse' }
-        ];
+        return [];
     }
 
     supportsRawValue(): boolean { return true; }

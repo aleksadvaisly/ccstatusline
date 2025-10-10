@@ -4,6 +4,7 @@ import type { RenderContext } from '../types/RenderContext';
 import type { Settings } from '../types/Settings';
 import type {
     CustomKeybind,
+    DisplayStyle,
     Widget,
     WidgetEditorDisplay,
     WidgetItem
@@ -13,36 +14,29 @@ export class GitChangesWidget implements Widget {
     getDefaultColor(): string { return 'yellow'; }
     getDescription(): string { return 'Shows git changes count (+insertions, -deletions, ↑commits ahead)'; }
     getDisplayName(): string { return 'Git Changes'; }
+
+    getAvailableStyles(): DisplayStyle[] {
+        return [
+            { id: 'show-nogit', label: '(+42,-10,↑3) / (no git)' },
+            { id: 'hide-nogit', label: '(+42,-10,↑3) / (hidden)' }
+        ];
+    }
+
     getEditorDisplay(item: WidgetItem): WidgetEditorDisplay {
-        const hideNoGit = item.metadata?.hideNoGit === 'true';
-        const modifiers: string[] = [];
-
-        if (hideNoGit) {
-            modifiers.push('hide \'no git\'');
-        }
-
         return {
-            displayText: this.getDisplayName(),
-            modifierText: modifiers.length > 0 ? `(${modifiers.join(', ')})` : undefined
+            displayText: this.getDisplayName()
         };
     }
 
-    handleEditorAction(action: string, item: WidgetItem): WidgetItem | null {
-        if (action === 'toggle-nogit') {
-            const currentState = item.metadata?.hideNoGit === 'true';
-            return {
-                ...item,
-                metadata: {
-                    ...item.metadata,
-                    hideNoGit: (!currentState).toString()
-                }
-            };
-        }
-        return null;
-    }
-
     render(item: WidgetItem, context: RenderContext, settings: Settings): string | null {
-        const hideNoGit = item.metadata?.hideNoGit === 'true';
+        // Determine style (with backward compatibility)
+        let style = item.displayStyle;
+        if (!style) {
+            const hideNoGit = item.metadata?.hideNoGit === 'true';
+            style = hideNoGit ? 'hide-nogit' : 'show-nogit';
+        }
+
+        const hideNoGit = style === 'hide-nogit';
 
         if (context.isPreview) {
             return '(+42,-10,↑3)';
@@ -103,9 +97,7 @@ export class GitChangesWidget implements Widget {
     }
 
     getCustomKeybinds(): CustomKeybind[] {
-        return [
-            { key: 'h', label: '(h)ide \'no git\' message', action: 'toggle-nogit' }
-        ];
+        return [];
     }
 
     supportsRawValue(): boolean { return false; }

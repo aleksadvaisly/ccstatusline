@@ -11,6 +11,7 @@ import {
     getChalkColor,
     getColorDisplayName
 } from '../../utils/colors';
+import { isSeparator } from '../../utils/widgets';
 
 import { ConfirmDialog } from './ConfirmDialog';
 
@@ -31,7 +32,7 @@ export const GlobalOverridesMenu: React.FC<GlobalOverridesMenuProps> = ({ settin
     const isPowerlineEnabled = settings.powerline.enabled;
 
     // Check if there are any manual separators in the current configuration
-    const hasManualSeparators = settings.lines.some(line => line.some(item => item.type === 'separator')
+    const hasManualSeparators = settings.lines.some(line => line.some(item => isSeparator(item))
     );
 
     // Get colors from COLOR_MAP
@@ -73,7 +74,7 @@ export const GlobalOverridesMenu: React.FC<GlobalOverridesMenuProps> = ({ settin
                         defaultSeparator: separatorInput || undefined,
                         // Only remove manual separators if we're setting a non-empty default
                         lines: separatorInput
-                            ? settings.lines.map(line => line.filter(item => item.type !== 'separator'))
+                            ? settings.lines.map(line => line.filter(item => !isSeparator(item)))
                             : settings.lines
                     };
                     onUpdate(updatedSettings);
@@ -199,7 +200,7 @@ export const GlobalOverridesMenu: React.FC<GlobalOverridesMenuProps> = ({ settin
                                 const updatedSettings = {
                                     ...settings,
                                     defaultSeparator: separatorInput,
-                                    lines: settings.lines.map(line => line.filter(item => item.type !== 'separator')
+                                    lines: settings.lines.map(line => line.filter(item => !isSeparator(item))
                                     )
                                 };
                                 onUpdate(updatedSettings);

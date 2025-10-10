@@ -10,6 +10,7 @@ import type {
 } from '../types';
 import { getColorLevelString } from '../types/ColorLevel';
 import type { Settings } from '../types/Settings';
+import type { WidgetCategory } from '../types/Widget';
 
 import {
     applyColors,
@@ -19,6 +20,22 @@ import {
 } from './colors';
 import { getTerminalWidth } from './terminal';
 import { getWidget } from './widgets';
+
+// Helper function to get widget category
+function getWidgetCategory(widget: WidgetItem): WidgetCategory {
+    const widgetImpl = getWidget(widget.type);
+    return widgetImpl?.getCategory?.() ?? 'content';
+}
+
+// Helper function to check if widget is a separator
+function isSeparator(widget: WidgetItem): boolean {
+    return getWidgetCategory(widget) === 'separator';
+}
+
+// Helper function to check if widget is flex separator
+function isFlexSeparator(widget: WidgetItem): boolean {
+    return getWidgetCategory(widget) === 'dynamic';
+}
 
 // Helper function to format token counts
 export function formatTokens(count: number): string {
@@ -135,7 +152,7 @@ function renderPowerlineStatusLine(
         let defaultColor = 'white';
 
         // Handle separators specially (they're not widgets)
-        if (widget.type === 'separator' || widget.type === 'flex-separator') {
+        if (isSeparator(widget) || isFlexSeparator(widget)) {
             // These are filtered out in powerline mode
             continue;
         }
@@ -510,7 +527,7 @@ export function preRenderAllWidgets(
 
         for (const widget of lineWidgets) {
             // Skip separators as they're handled differently
-            if (widget.type === 'separator' || widget.type === 'flex-separator') {
+            if (isSeparator(widget) || isFlexSeparator(widget)) {
                 preRenderedLine.push({
                     content: '',  // Separators are handled specially
                     plainLength: 0,
@@ -704,13 +721,13 @@ export function renderStatusLine(
             continue;
 
         // Handle separators specially (they're not widgets)
-        if (widget.type === 'separator') {
+        if (isSeparator(widget)) {
             // Check if there's any widget before this separator that actually rendered content
             // Look backwards to find ANY widget that produced content
             let hasContentBefore = false;
             for (let j = i - 1; j >= 0; j--) {
                 const prevWidget = widgets[j];
-                if (prevWidget && prevWidget.type !== 'separator' && prevWidget.type !== 'flex-separator') {
+                if (prevWidget && !isSeparator(prevWidget) && !isFlexSeparator(prevWidget)) {
                     if (preRenderedWidgets[j]?.content) {
                         hasContentBefore = true;
                         break;
@@ -721,8 +738,13 @@ export function renderStatusLine(
             if (!hasContentBefore)
                 continue;
 
-            const sepChar = widget.character ?? (settings.defaultSeparator ?? '|');
-            const formattedSep = formatSeparator(sepChar);
+            // Use widget.render() to get separator text (handles displayStyle)
+            const widgetImpl = getWidget(widget.type);
+            if (!widgetImpl) {
+                elements.push({ content: '[SEPARATOR?]', type: 'separator', widget });
+                continue;
+            }
+            const formattedSep = widgetImpl.render(widget, context, settings) ?? '[SEP-NULL]';
 
             // Check if we should inherit colors from the previous widget
             let separatorColor = widget.color ?? 'gray';
@@ -732,7 +754,7 @@ export function renderStatusLine(
             if (settings.inheritSeparatorColors && i > 0 && !widget.color && !widget.backgroundColor) {
                 // Only inherit if the separator doesn't have explicit colors set
                 const prevWidget = widgets[i - 1];
-                if (prevWidget && prevWidget.type !== 'separator' && prevWidget.type !== 'flex-separator') {
+                if (prevWidget && !isSeparator(prevWidget) && !isFlexSeparator(prevWidget)) {
                     // Get the previous widget's colors
                     let widgetColor = prevWidget.color;
                     if (!widgetColor) {
@@ -749,7 +771,7 @@ export function renderStatusLine(
             continue;
         }
 
-        if (widget.type === 'flex-separator') {
+        if (isFlexSeparator(widget)) {
             elements.push({ content: 'FLEX', type: 'flex-separator', widget });
             hasFlexSeparator = true;
             continue;

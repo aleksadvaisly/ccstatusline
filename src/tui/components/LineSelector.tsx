@@ -25,6 +25,9 @@ interface LineSelectorProps {
     blockIfPowerlineActive?: boolean;
     settings?: Settings;
     allowEditing?: boolean;
+    hasChanges?: boolean;
+    onSaveAndBack?: () => void;
+    onSaveAndInstall?: () => void;
 }
 
 const LineSelector: React.FC<LineSelectorProps> = ({
@@ -36,7 +39,10 @@ const LineSelector: React.FC<LineSelectorProps> = ({
     title,
     blockIfPowerlineActive = false,
     settings,
-    allowEditing = false
+    allowEditing = false,
+    hasChanges = false,
+    onSaveAndBack,
+    onSaveAndInstall
 }) => {
     const [selectedIndex, setSelectedIndex] = useState(initialSelection);
     const [showDeleteDialog, setShowDeleteDialog] = useState(false);
@@ -106,14 +112,54 @@ const LineSelector: React.FC<LineSelectorProps> = ({
         if (key.escape) {
             onBack();
         } else if (key.upArrow) {
-            setSelectedIndex(Math.max(0, selectedIndex - 1));
-        } else if (key.downArrow) {
-            setSelectedIndex(Math.min(localLines.length, selectedIndex + 1));
-        } else if (key.return) {
-            if (selectedIndex === localLines.length) {
-                onBack();
+            if (hasChanges && onSaveAndBack && onSaveAndInstall) {
+                // Selectable indices: 0..(n-1), (n+1), (n+2), (n+3)
+                // Gap at index n (not selectable)
+                if (selectedIndex === localLines.length + 1) {
+                    // From Save & Back, go to last line
+                    setSelectedIndex(localLines.length - 1);
+                } else if (selectedIndex > 0) {
+                    setSelectedIndex(selectedIndex - 1);
+                }
             } else {
-                onSelect(selectedIndex);
+                setSelectedIndex(Math.max(0, selectedIndex - 1));
+            }
+        } else if (key.downArrow) {
+            if (hasChanges && onSaveAndBack && onSaveAndInstall) {
+                // Selectable indices: 0..(n-1), (n+1), (n+2), (n+3)
+                // Gap at index n (not selectable)
+                if (selectedIndex === localLines.length - 1) {
+                    // From last line, skip gap and go to Save & Back
+                    setSelectedIndex(localLines.length + 1);
+                } else if (selectedIndex < localLines.length + 3) {
+                    setSelectedIndex(selectedIndex + 1);
+                }
+            } else {
+                const maxIndex = localLines.length;
+                setSelectedIndex(Math.min(maxIndex, selectedIndex + 1));
+            }
+        } else if (key.return) {
+            if (hasChanges && onSaveAndBack && onSaveAndInstall) {
+                // Menu: [lines...] [gap] [saveAndBack] [saveAndInstall] [gap] [ignoreChanges]
+                if (selectedIndex === localLines.length + 1) {
+                    // Save & Back
+                    onSaveAndBack();
+                } else if (selectedIndex === localLines.length + 2) {
+                    // Save & (re)install
+                    onSaveAndInstall();
+                } else if (selectedIndex === localLines.length + 3) {
+                    // Ignore changes
+                    onBack();
+                } else {
+                    onSelect(selectedIndex);
+                }
+            } else {
+                // No changes or no save callbacks
+                if (selectedIndex === localLines.length) {
+                    onBack();
+                } else {
+                    onSelect(selectedIndex);
+                }
             }
         }
     });
@@ -239,12 +285,41 @@ const LineSelector: React.FC<LineSelectorProps> = ({
                         );
                     })}
 
-                    <Box marginTop={1}>
-                        <Text color={selectedIndex === localLines.length ? 'green' : undefined}>
-                            {selectedIndex === localLines.length ? '▶  ' : '   '}
-                            ← Back
-                        </Text>
-                    </Box>
+                    {hasChanges && onSaveAndBack && onSaveAndInstall ? (
+                        <>
+                            <Box marginTop={1}>
+                                <Text> </Text>
+                            </Box>
+                            <Box>
+                                <Text color={selectedIndex === localLines.length + 1 ? 'green' : undefined}>
+                                    {selectedIndex === localLines.length + 1 ? '▶  ' : '   '}
+                                    💾 Save & Back
+                                </Text>
+                            </Box>
+                            <Box>
+                                <Text color={selectedIndex === localLines.length + 2 ? 'green' : undefined}>
+                                    {selectedIndex === localLines.length + 2 ? '▶  ' : '   '}
+                                    🔄 Save & (re)install
+                                </Text>
+                            </Box>
+                            <Box marginTop={1}>
+                                <Text> </Text>
+                            </Box>
+                            <Box>
+                                <Text color={selectedIndex === localLines.length + 3 ? 'green' : undefined}>
+                                    {selectedIndex === localLines.length + 3 ? '▶  ' : '   '}
+                                    ← Ignore changes
+                                </Text>
+                            </Box>
+                        </>
+                    ) : (
+                        <Box marginTop={1}>
+                            <Text color={selectedIndex === localLines.length ? 'green' : undefined}>
+                                {selectedIndex === localLines.length ? '▶  ' : '   '}
+                                {hasChanges ? '← Ignore changes' : '← Back'}
+                            </Text>
+                        </Box>
+                    )}
                 </Box>
             </Box>
         </>

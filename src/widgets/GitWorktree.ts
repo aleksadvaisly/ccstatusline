@@ -3,6 +3,7 @@ import { execSync } from 'child_process';
 import type { RenderContext } from '../types/RenderContext';
 import type {
     CustomKeybind,
+    DisplayStyle,
     Widget,
     WidgetEditorDisplay,
     WidgetItem
@@ -12,45 +13,51 @@ export class GitWorktreeWidget implements Widget {
     getDefaultColor(): string { return 'blue'; }
     getDescription(): string { return 'Shows the current git worktree name'; }
     getDisplayName(): string { return 'Git Worktree'; }
+
+    getAvailableStyles(): DisplayStyle[] {
+        return [
+            { id: 'with-icon-show', label: '𖠰 main / 𖠰 no git' },
+            { id: 'with-icon-hide', label: '𖠰 main / (hidden)' },
+            { id: 'plain-show', label: 'main / no git' },
+            { id: 'plain-hide', label: 'main / (hidden)' }
+        ];
+    }
+
     getEditorDisplay(item: WidgetItem): WidgetEditorDisplay {
-        const hideNoGit = item.metadata?.hideNoGit === 'true';
-        const modifiers: string[] = [];
-
-        if (hideNoGit) {
-            modifiers.push('hide \'no git\'');
-        }
-
         return {
-            displayText: this.getDisplayName(),
-            modifierText: modifiers.length > 0 ? `(${modifiers.join(', ')})` : undefined
+            displayText: this.getDisplayName()
         };
     }
 
-    handleEditorAction(action: string, item: WidgetItem): WidgetItem | null {
-        if (action === 'toggle-nogit') {
-            const currentState = item.metadata?.hideNoGit === 'true';
-            return {
-                ...item,
-                metadata: {
-                    ...item.metadata,
-                    hideNoGit: (!currentState).toString()
-                }
-            };
-        }
-        return null;
-    }
-
     render(item: WidgetItem, context: RenderContext): string | null {
-        const hideNoGit = item.metadata?.hideNoGit === 'true';
+        // Determine style (with backward compatibility)
+        let style = item.displayStyle;
+        if (!style) {
+            const hideNoGit = item.metadata?.hideNoGit === 'true';
+            const isRaw = item.rawValue;
+            if (hideNoGit) {
+                style = isRaw ? 'plain-hide' : 'with-icon-hide';
+            } else {
+                style = isRaw ? 'plain-show' : 'with-icon-show';
+            }
+        }
 
-        if (context.isPreview)
-            return item.rawValue ? 'main' : '𖠰 main';
+        const withIcon = style.startsWith('with-icon');
+        const hideNoGit = style.includes('hide');
+
+        if (context.isPreview) {
+            return withIcon ? '𖠰 main' : 'main';
+        }
 
         const worktree = this.getGitWorktree();
-        if (worktree)
-            return item.rawValue ? worktree : `𖠰 ${worktree}`;
+        if (worktree) {
+            return withIcon ? `𖠰 ${worktree}` : worktree;
+        }
 
-        return hideNoGit ? null : '𖠰 no git';
+        if (hideNoGit) {
+            return null;
+        }
+        return withIcon ? '𖠰 no git' : 'no git';
     }
 
     private getGitWorktree(): string | null {
@@ -74,9 +81,7 @@ export class GitWorktreeWidget implements Widget {
     }
 
     getCustomKeybinds(): CustomKeybind[] {
-        return [
-            { key: 'h', label: '(h)ide \'no git\' message', action: 'toggle-nogit' }
-        ];
+        return [];
     }
 
     supportsRawValue(): boolean { return true; }

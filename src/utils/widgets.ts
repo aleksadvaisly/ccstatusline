@@ -1,6 +1,8 @@
 import type { Settings } from '../types/Settings';
 import type {
     Widget,
+    WidgetCategory,
+    WidgetItem,
     WidgetItemType
 } from '../types/Widget';
 import * as widgets from '../widgets';
@@ -26,7 +28,9 @@ const widgetRegistry = new Map<WidgetItemType, Widget>([
     ['terminal-width', new widgets.TerminalWidthWidget()],
     ['version', new widgets.VersionWidget()],
     ['custom-text', new widgets.CustomTextWidget()],
-    ['custom-command', new widgets.CustomCommandWidget()]
+    ['custom-command', new widgets.CustomCommandWidget()],
+    ['separator', new widgets.SeparatorWidget()],
+    ['flex-separator', new widgets.FlexSeparatorWidget()]
 ]);
 
 export function getWidget(type: WidgetItemType): Widget | null {
@@ -36,19 +40,39 @@ export function getWidget(type: WidgetItemType): Widget | null {
 export function getAllWidgetTypes(settings: Settings): WidgetItemType[] {
     const allTypes = Array.from(widgetRegistry.keys());
 
-    // Add separator types based on settings
-    if (!settings.powerline.enabled) {
-        if (!settings.defaultSeparator) {
-            allTypes.push('separator');
-        }
-        allTypes.push('flex-separator');
+    // Filter out separator types if powerline is enabled
+    if (settings.powerline.enabled) {
+        return allTypes.filter((type) => {
+            const widget = widgetRegistry.get(type);
+            const category = widget?.getCategory?.() ?? 'content';
+            return category !== 'separator' && category !== 'dynamic';
+        });
+    }
+
+    // Filter out manual separator if default separator is enabled
+    if (settings.defaultSeparator) {
+        return allTypes.filter(type => type !== 'separator');
     }
 
     return allTypes;
 }
 
 export function isKnownWidgetType(type: string): boolean {
-    return widgetRegistry.has(type)
-        || type === 'separator'
-        || type === 'flex-separator';
+    return widgetRegistry.has(type);
+}
+
+// Helper function to get widget category
+export function getWidgetCategory(widget: WidgetItem): WidgetCategory {
+    const widgetImpl = getWidget(widget.type);
+    return widgetImpl?.getCategory?.() ?? 'content';
+}
+
+// Helper function to check if widget is a separator
+export function isSeparator(widget: WidgetItem): boolean {
+    return getWidgetCategory(widget) === 'separator';
+}
+
+// Helper function to check if widget is flex separator
+export function isFlexSeparator(widget: WidgetItem): boolean {
+    return getWidgetCategory(widget) === 'dynamic';
 }

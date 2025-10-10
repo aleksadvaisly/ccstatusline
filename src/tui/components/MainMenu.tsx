@@ -10,7 +10,6 @@ import { type PowerlineFontStatus } from '../../utils/powerline';
 
 export interface MainMenuProps {
     onSelect: (value: string) => void;
-    isClaudeInstalled: boolean;
     hasChanges: boolean;
     initialSelection?: number;
     powerlineFontStatus: PowerlineFontStatus;
@@ -18,7 +17,7 @@ export interface MainMenuProps {
     previewIsTruncated?: boolean;
 }
 
-export const MainMenu: React.FC<MainMenuProps> = ({ onSelect, isClaudeInstalled, hasChanges, initialSelection = 0, powerlineFontStatus, settings, previewIsTruncated }) => {
+export const MainMenu: React.FC<MainMenuProps> = ({ onSelect, hasChanges, initialSelection = 0, powerlineFontStatus, settings, previewIsTruncated }) => {
     const [selectedIndex, setSelectedIndex] = useState(initialSelection);
 
     // Build menu structure with visual gaps
@@ -30,18 +29,10 @@ export const MainMenu: React.FC<MainMenuProps> = ({ onSelect, isClaudeInstalled,
         { label: '💻 Terminal Options', value: 'terminalConfig', selectable: true },
         { label: '🌐 Global Overrides', value: 'globalOverrides', selectable: true },
         { label: '', value: '_gap2', selectable: false },  // Visual gap
-        { label: isClaudeInstalled ? '🔌 Uninstall from Claude Code' : '📦 Install to Claude Code', value: 'install', selectable: true },
-        { label: '🔄 Reinstall to Claude Code', value: 'reinstall', selectable: true }
+        { label: '🔄 (Re)install to Claude Code', value: 'install', selectable: true },
+        { label: '', value: '_gap3', selectable: false },  // Visual gap
+        { label: '🚪 Exit', value: 'exit', selectable: true }
     ];
-
-    if (hasChanges) {
-        menuItems.push(
-            { label: '💾 Save & Exit', value: 'save', selectable: true },
-            { label: '❌ Exit without saving', value: 'exit', selectable: true }
-        );
-    } else {
-        menuItems.push({ label: '🚪 Exit', value: 'exit', selectable: true });
-    }
 
     // Get only selectable items for navigation
     const selectableItems = menuItems.filter(item => item.selectable);
@@ -66,14 +57,10 @@ export const MainMenu: React.FC<MainMenuProps> = ({ onSelect, isClaudeInstalled,
             colors: 'Customize colors for each widget including foreground, background, and bold styling',
             powerline: 'Install Powerline fonts for enhanced visual separators and symbols in your status line',
             globalOverrides: 'Set global padding, separators, and color overrides that apply to all widgets',
-            install: isClaudeInstalled
-                ? 'Remove ccstatusline from your Claude Code settings'
-                : 'Add ccstatusline to your Claude Code settings for automatic status line rendering',
-            reinstall: 'Reinstall or update ccstatusline in Claude Code settings (useful after updating the package)',
+            install: 'Install or reinstall ccstatusline in Claude Code settings (automatically handles updates)',
             terminalConfig: 'Configure terminal-specific settings for optimal display',
-            save: 'Save all changes and exit the configuration tool',
             exit: hasChanges
-                ? 'Exit without saving your changes'
+                ? 'Exit configuration (will prompt to save if you have unsaved changes)'
                 : 'Exit the configuration tool'
         };
         return descriptions[value] ?? '';

@@ -1,8 +1,12 @@
 import { execSync } from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
+import { dirname } from 'path';
+import { fileURLToPath } from 'url';
 
-// Note: __filename and __dirname are provided by the build banner
+// Define __dirname for ESM (works in both dev and production)
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 // Get package version
 // __PACKAGE_VERSION__ will be replaced at build time

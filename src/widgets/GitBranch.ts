@@ -4,6 +4,7 @@ import type { RenderContext } from '../types/RenderContext';
 import type { Settings } from '../types/Settings';
 import type {
     CustomKeybind,
+    DisplayStyle,
     Widget,
     WidgetEditorDisplay,
     WidgetItem
@@ -13,39 +14,40 @@ export class GitBranchWidget implements Widget {
     getDefaultColor(): string { return 'magenta'; }
     getDescription(): string { return 'Shows the current git branch name with * for changes and ↑ for unpushed commits'; }
     getDisplayName(): string { return 'Git Branch'; }
+
+    getAvailableStyles(): DisplayStyle[] {
+        return [
+            { id: 'with-icon-show', label: '⎇ main / ⎇ no git' },
+            { id: 'with-icon-hide', label: '⎇ main / (hidden)' },
+            { id: 'plain-show', label: 'main / no git' },
+            { id: 'plain-hide', label: 'main / (hidden)' }
+        ];
+    }
+
     getEditorDisplay(item: WidgetItem): WidgetEditorDisplay {
-        const hideNoGit = item.metadata?.hideNoGit === 'true';
-        const modifiers: string[] = [];
-
-        if (hideNoGit) {
-            modifiers.push('hide \'no git\'');
-        }
-
         return {
-            displayText: this.getDisplayName(),
-            modifierText: modifiers.length > 0 ? `(${modifiers.join(', ')})` : undefined
+            displayText: this.getDisplayName()
         };
     }
 
-    handleEditorAction(action: string, item: WidgetItem): WidgetItem | null {
-        if (action === 'toggle-nogit') {
-            const currentState = item.metadata?.hideNoGit === 'true';
-            return {
-                ...item,
-                metadata: {
-                    ...item.metadata,
-                    hideNoGit: (!currentState).toString()
-                }
-            };
-        }
-        return null;
-    }
-
     render(item: WidgetItem, context: RenderContext, settings: Settings): string | null {
-        const hideNoGit = item.metadata?.hideNoGit === 'true';
+        // Determine style (with backward compatibility)
+        let style = item.displayStyle;
+        if (!style) {
+            const hideNoGit = item.metadata?.hideNoGit === 'true';
+            const isRaw = item.rawValue;
+            if (hideNoGit) {
+                style = isRaw ? 'plain-hide' : 'with-icon-hide';
+            } else {
+                style = isRaw ? 'plain-show' : 'with-icon-show';
+            }
+        }
+
+        const withIcon = style.startsWith('with-icon');
+        const hideNoGit = style.includes('hide');
 
         if (context.isPreview) {
-            return item.rawValue ? 'main *' : '⎇ main *';
+            return withIcon ? '⎇ main *' : 'main *';
         }
 
         const branch = this.getGitBranch();
@@ -60,10 +62,13 @@ export class GitBranchWidget implements Widget {
                 indicator = ' ↑';
             }
 
-            return item.rawValue ? `${branch}${indicator}` : `⎇ ${branch}${indicator}`;
+            return withIcon ? `⎇ ${branch}${indicator}` : `${branch}${indicator}`;
         }
 
-        return hideNoGit ? null : '⎇ no git';
+        if (hideNoGit) {
+            return null;
+        }
+        return withIcon ? '⎇ no git' : 'no git';
     }
 
     private getGitBranch(): string | null {
@@ -103,9 +108,7 @@ export class GitBranchWidget implements Widget {
     }
 
     getCustomKeybinds(): CustomKeybind[] {
-        return [
-            { key: 'h', label: '(h)ide \'no git\' message', action: 'toggle-nogit' }
-        ];
+        return [];
     }
 
     supportsRawValue(): boolean { return true; }
