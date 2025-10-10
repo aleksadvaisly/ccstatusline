@@ -544,19 +544,23 @@ export function preRenderAllWidgets(
 
             const widgetText = widgetImpl.render(widget, context, settings);
 
-            // If widget returns null, skip it entirely (don't render)
-            if (widgetText === null) {
-                continue;
-            }
-
             // Store the rendered content without padding (padding is applied later)
-            // Use stringWidth to properly calculate Unicode character display width
-            const plainLength = stringWidth(widgetText.replace(ANSI_REGEX, ''));
-            preRenderedLine.push({
-                content: widgetText,
-                plainLength,
-                widget
-            });
+            // If widget returns null, store empty content (maintains index alignment)
+            if (widgetText === null) {
+                preRenderedLine.push({
+                    content: '',
+                    plainLength: 0,
+                    widget
+                });
+            } else {
+                // Use stringWidth to properly calculate Unicode character display width
+                const plainLength = stringWidth(widgetText.replace(ANSI_REGEX, ''));
+                preRenderedLine.push({
+                    content: widgetText,
+                    plainLength,
+                    widget
+                });
+            }
         }
 
         preRenderedLines.push(preRenderedLine);
