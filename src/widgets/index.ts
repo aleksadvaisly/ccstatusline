@@ -20,3 +20,4 @@ export { BlockTimerWidget } from './BlockTimer';
 export { CurrentWorkingDirWidget } from './CurrentWorkingDir';
 export { SeparatorWidget } from './Separator';
 export { FlexSeparatorWidget } from './FlexSeparator';
+export { IconWidget } from './Icon';

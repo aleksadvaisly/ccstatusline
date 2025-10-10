@@ -17,10 +17,10 @@ export class GitBranchWidget implements Widget {
 
     getAvailableStyles(): DisplayStyle[] {
         return [
-            { id: 'with-icon-show', label: '⎇ main / ⎇ no git' },
-            { id: 'with-icon-hide', label: '⎇ main / (hidden)' },
-            { id: 'plain-show', label: 'main / no git' },
-            { id: 'plain-hide', label: 'main / (hidden)' }
+            { id: 'with-icon-show', label: '⎇ main (always show, even "no git")' },
+            { id: 'with-icon-hide', label: '⎇ main (hide if no git)' },
+            { id: 'plain-show', label: 'main (always show, even "no git")' },
+            { id: 'plain-hide', label: 'main (hide if no git)' }
         ];
     }
 

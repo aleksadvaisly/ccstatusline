@@ -30,7 +30,8 @@ const widgetRegistry = new Map<WidgetItemType, Widget>([
     ['custom-text', new widgets.CustomTextWidget()],
     ['custom-command', new widgets.CustomCommandWidget()],
     ['separator', new widgets.SeparatorWidget()],
-    ['flex-separator', new widgets.FlexSeparatorWidget()]
+    ['flex-separator', new widgets.FlexSeparatorWidget()],
+    ['icon', new widgets.IconWidget()]
 ]);
 
 export function getWidget(type: WidgetItemType): Widget | null {
