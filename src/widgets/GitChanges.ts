@@ -12,13 +12,13 @@ import type {
 
 export class GitChangesWidget implements Widget {
     getDefaultColor(): string { return 'yellow'; }
-    getDescription(): string { return 'Shows git changes count (+insertions, -deletions, ↑commits ahead)'; }
+    getDescription(): string { return 'Shows git changes count (+insertions, -deletions, ↑commits ahead, ?untracked)'; }
     getDisplayName(): string { return 'Git Changes'; }
 
     getAvailableStyles(): DisplayStyle[] {
         return [
-            { id: 'show-nogit', label: '(+42,-10,↑3) / (no git)' },
-            { id: 'hide-nogit', label: '(+42,-10,↑3) / (hidden)' }
+            { id: 'show-nogit', label: '(+42,-10,↑3,?5) / (no git)' },
+            { id: 'hide-nogit', label: '(+42,-10,↑3,?5) / (hidden)' }
         ];
     }
 
@@ -39,7 +39,7 @@ export class GitChangesWidget implements Widget {
         const hideNoGit = style === 'hide-nogit';
 
         if (context.isPreview) {
-            return '(+42,-10,↑3)';
+            return '(+42,-10,↑3,?5)';
         }
 
         const changes = this.getGitChanges();
@@ -54,6 +54,9 @@ export class GitChangesWidget implements Widget {
             if (changes.commitsAhead > 0) {
                 parts.push(`↑${changes.commitsAhead}`);
             }
+            if (changes.untracked > 0) {
+                parts.push(`?${changes.untracked}`);
+            }
 
             if (parts.length === 0) {
                 return null;
@@ -64,7 +67,7 @@ export class GitChangesWidget implements Widget {
         return hideNoGit ? null : '(no git)';
     }
 
-    private getGitChanges(): { insertions: number; deletions: number; commitsAhead: number } | null {
+    private getGitChanges(): { insertions: number; deletions: number; commitsAhead: number; untracked: number } | null {
         try {
             let totalInsertions = 0;
             let totalDeletions = 0;
@@ -104,7 +107,18 @@ export class GitChangesWidget implements Widget {
                 commitsAhead = 0;
             }
 
-            return { insertions: totalInsertions, deletions: totalDeletions, commitsAhead };
+            let untracked = 0;
+            try {
+                const untrackedOutput = execSync('git ls-files --others --exclude-standard', {
+                    encoding: 'utf8',
+                    stdio: ['pipe', 'pipe', 'ignore']
+                }).trim();
+                untracked = untrackedOutput ? untrackedOutput.split('\n').length : 0;
+            } catch {
+                untracked = 0;
+            }
+
+            return { insertions: totalInsertions, deletions: totalDeletions, commitsAhead, untracked };
         } catch {
             return null;
         }

@@ -8,6 +8,8 @@ import type {
     WidgetItem
 } from '../types/Widget';
 
+const CONTEXT_SCALING_FACTOR = 1.04;
+
 export class ContextPercentageUsableWidget implements Widget {
     getDefaultColor(): string { return 'green'; }
     getDescription(): string { return 'Shows percentage of usable context window used or remaining (of 160k tokens before auto-compact)'; }
@@ -50,7 +52,7 @@ export class ContextPercentageUsableWidget implements Widget {
             usedPercentage = 11.6;
             remainingPercentage = 88.4;
         } else if (context.tokenMetrics) {
-            usedPercentage = Math.min(100, (context.tokenMetrics.contextLength / 160000) * 100);
+            usedPercentage = Math.min(100, (context.tokenMetrics.contextLength / 160000) * 100 * CONTEXT_SCALING_FACTOR);
             remainingPercentage = 100 - usedPercentage;
         } else {
             return null;
