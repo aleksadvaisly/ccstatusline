@@ -12,7 +12,7 @@ import type {
 
 export class GitChangesWidget implements Widget {
     getDefaultColor(): string { return 'yellow'; }
-    getDescription(): string { return 'Shows git changes count (+insertions, -deletions, ↑commits ahead, ?untracked)'; }
+    getDescription(): string { return 'Shows git changes count (+insertions, -deletions, ↑commits ahead, ?untracked, ±files)'; }
     getDisplayName(): string { return 'Git Changes'; }
 
     getAvailableStyles(): DisplayStyle[] {
@@ -58,6 +58,11 @@ export class GitChangesWidget implements Widget {
                 parts.push(`?${changes.untracked}`);
             }
 
+            // If no line-based changes but files are modified (binary, deleted, etc.)
+            if (parts.length === 0 && changes.modifiedFiles > 0) {
+                parts.push(`±${changes.modifiedFiles}`);
+            }
+
             if (parts.length === 0) {
                 return null;
             }
@@ -67,7 +72,7 @@ export class GitChangesWidget implements Widget {
         return hideNoGit ? null : '(no git)';
     }
 
-    private getGitChanges(): { insertions: number; deletions: number; commitsAhead: number; untracked: number } | null {
+    private getGitChanges(): { insertions: number; deletions: number; commitsAhead: number; untracked: number; modifiedFiles: number } | null {
         try {
             let totalInsertions = 0;
             let totalDeletions = 0;
@@ -118,7 +123,26 @@ export class GitChangesWidget implements Widget {
                 untracked = 0;
             }
 
-            return { insertions: totalInsertions, deletions: totalDeletions, commitsAhead, untracked };
+            // Count modified files (staged + unstaged, excluding untracked)
+            let modifiedFiles = 0;
+            try {
+                const statusOutput = execSync('git status --porcelain', {
+                    encoding: 'utf8',
+                    stdio: ['pipe', 'pipe', 'ignore']
+                }).trim();
+                if (statusOutput) {
+                    // Count lines that start with M, A, D, R, C (modified/added/deleted/renamed/copied)
+                    // Exclude ?? (untracked) as we count those separately
+                    modifiedFiles = statusOutput.split('\n').filter(line => {
+                        const status = line.substring(0, 2).trim();
+                        return status && status !== '??';
+                    }).length;
+                }
+            } catch {
+                modifiedFiles = 0;
+            }
+
+            return { insertions: totalInsertions, deletions: totalDeletions, commitsAhead, untracked, modifiedFiles };
         } catch {
             return null;
         }
