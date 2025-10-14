@@ -1,6 +1,6 @@
 # ccstatusline
 
-<img src="docs/small_create_with_ai.png" style="float: left; margin: 0 15px 15px 0;" width="150">
+![Created with AI agents](docs/small_create_with_ai.png)
 
 Customizable status line formatter for Claude Code CLI. Displays model info, git branch, token usage, and other metrics.
 
