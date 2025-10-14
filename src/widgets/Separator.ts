@@ -22,6 +22,8 @@ export class SeparatorWidget implements Widget {
             { id: 'dash', label: ' - ' },
             { id: 'comma', label: ', ' },
             { id: 'dot', label: ' · ' },
+            { id: 'bullet', label: ' ● ' },
+            { id: 'circle', label: ' ○ ' },
             { id: 'single', label: ' ' },
             { id: 'double', label: '  ' },
             { id: 'triple', label: '   ' }
@@ -70,6 +72,8 @@ export class SeparatorWidget implements Widget {
         case '-': return 'dash';
         case ',': return 'comma';
         case '·': return 'dot';
+        case '●': return 'bullet';
+        case '○': return 'circle';
         case ' ': return 'single';
         case '  ': return 'double';
         case '   ': return 'triple';

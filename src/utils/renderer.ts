@@ -37,7 +37,6 @@ function isFlexSeparator(widget: WidgetItem): boolean {
     return getWidgetCategory(widget) === 'dynamic';
 }
 
-
 // Helper function to format token counts
 export function formatTokens(count: number): string {
     if (count >= 1000000)
@@ -96,10 +95,11 @@ function renderPowerlineStatusLine(
 
     for (let i = 0; i < widgets.length; i++) {
         const widget = widgets[i];
-        if (!widget) continue;
+        if (!widget)
+            continue;
 
         const preRendered = preRenderedWidgets[i];
-        const hasContent = preRendered && preRendered.content && preRendered.plainLength > 0;
+        const hasContent = preRendered?.content && preRendered.plainLength > 0;
 
         if (isSeparator(widget)) {
             if (groupStart === -1) {
@@ -160,10 +160,9 @@ function renderPowerlineStatusLine(
     }
 
     // Filter out separator and flex-separator widgets in powerline mode, and skip marked separator duplicates
-    const filteredWidgets = widgets.filter((widget, idx) =>
-        widget.type !== 'separator' &&
-        widget.type !== 'flex-separator' &&
-        !widgetsToSkip.has(idx)
+    const filteredWidgets = widgets.filter((widget, idx) => widget.type !== 'separator'
+        && widget.type !== 'flex-separator'
+        && !widgetsToSkip.has(idx)
     );
 
     if (filteredWidgets.length === 0)
@@ -820,10 +819,11 @@ export function renderStatusLine(
 
     for (let i = 0; i < widgets.length; i++) {
         const widget = widgets[i];
-        if (!widget) continue;
+        if (!widget)
+            continue;
 
         const preRendered = preRenderedWidgets[i];
-        const hasContent = preRendered && preRendered.content && preRendered.plainLength > 0;
+        const hasContent = preRendered?.content && preRendered.plainLength > 0;
 
         if (isSeparator(widget)) {
             if (groupStart === -1) {

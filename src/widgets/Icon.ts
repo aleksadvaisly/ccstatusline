@@ -33,9 +33,7 @@ export class IconWidget implements Widget {
     getEditorDisplay(item: WidgetItem): WidgetEditorDisplay {
         const style = item.displayStyle || 'folder';
         const icon = this.getAvailableStyles().find(s => s.id === style)?.label || '📁';
-        return {
-            displayText: `${this.getDisplayName()} (${icon})`
-        };
+        return { displayText: `${this.getDisplayName()} (${icon})` };
     }
 
     render(item: WidgetItem, _context: RenderContext, _settings: Settings): string | null {

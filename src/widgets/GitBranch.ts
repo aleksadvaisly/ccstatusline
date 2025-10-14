@@ -25,9 +25,7 @@ export class GitBranchWidget implements Widget {
     }
 
     getEditorDisplay(item: WidgetItem): WidgetEditorDisplay {
-        return {
-            displayText: this.getDisplayName()
-        };
+        return { displayText: this.getDisplayName() };
     }
 
     render(item: WidgetItem, context: RenderContext, settings: Settings): string | null {

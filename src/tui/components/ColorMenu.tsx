@@ -28,7 +28,6 @@ export interface ColorMenuProps {
 }
 
 export const ColorMenu: React.FC<ColorMenuProps> = ({ widgets, lineIndex, settings, onUpdate, onBack }) => {
-    const [showSeparators, setShowSeparators] = useState(false);
     const [hexInputMode, setHexInputMode] = useState(false);
     const [hexInput, setHexInput] = useState('');
     const [ansi256InputMode, setAnsi256InputMode] = useState(false);
@@ -38,10 +37,6 @@ export const ColorMenu: React.FC<ColorMenuProps> = ({ widgets, lineIndex, settin
     const powerlineEnabled = settings.powerline.enabled;
 
     const colorableWidgets = widgets.filter((widget) => {
-        // Include separators only if showSeparators is true
-        if (widget.type === 'separator') {
-            return showSeparators;
-        }
         // Use the widget's supportsColors method
         const widgetInstance = getWidget(widget.type);
         // Include unknown widgets (they might support colors, we just don't know)
@@ -181,13 +176,6 @@ export const ColorMenu: React.FC<ColorMenuProps> = ({ widgets, lineIndex, settin
             if (highlightedItemId && highlightedItemId !== 'back' && settings.colorLevel === 2) {
                 setAnsi256InputMode(true);
                 setAnsi256Input('');
-            }
-        } else if ((input === 's' || input === 'S') && !key.ctrl) {
-            // Toggle show separators (only if not in powerline mode and no default separator)
-            if (!settings.powerline.enabled && !settings.defaultSeparator) {
-                setShowSeparators(!showSeparators);
-                // The highlighted item ID will be maintained, and we'll recalculate
-                // the initial index when rendering the SelectInput
             }
         } else if (input === 'f' || input === 'F') {
             if (colorableWidgets.length > 0) {
@@ -510,12 +498,6 @@ export const ColorMenu: React.FC<ColorMenuProps> = ({ widgets, lineIndex, settin
                         {' '}
                         (r)eset, (c)lear all, ESC to go back
                     </Text>
-                    {!settings.powerline.enabled && !settings.defaultSeparator && (
-                        <Text dimColor>
-                            (s)how separators:
-                            {showSeparators ? chalk.green('ON') : chalk.gray('OFF')}
-                        </Text>
-                    )}
                     {selectedWidget ? (
                         <Box marginTop={1}>
                             <Text>
@@ -556,7 +538,7 @@ export const ColorMenu: React.FC<ColorMenuProps> = ({ widgets, lineIndex, settin
                 ) : (
                     // Interactive SelectInput when not in input mode
                     <SelectInput
-                        key={`${showSeparators}-${highlightedItemId}`}
+                        key={highlightedItemId ?? 'none'}
                         items={menuItems}
                         onSelect={handleSelect}
                         onHighlight={handleHighlight}

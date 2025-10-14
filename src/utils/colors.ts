@@ -151,9 +151,10 @@ export function applyColors(
         }
     }
 
-    // Apply bold last if needed
+    // Apply bold if needed
+    // Use raw ANSI codes instead of chalk.bold() to avoid full reset code
     if (bold) {
-        result = chalk.bold(result);
+        result = '\x1b[1m' + result + '\x1b[22m';
     }
 
     return result;

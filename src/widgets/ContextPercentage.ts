@@ -27,9 +27,7 @@ export class ContextPercentageWidget implements Widget {
     }
 
     getEditorDisplay(item: WidgetItem): WidgetEditorDisplay {
-        return {
-            displayText: this.getDisplayName()
-        };
+        return { displayText: this.getDisplayName() };
     }
 
     render(item: WidgetItem, context: RenderContext, settings: Settings): string | null {
@@ -61,20 +59,20 @@ export class ContextPercentageWidget implements Widget {
 
         // Format based on style
         switch (style) {
-            case 'remaining-plain':
-                return `${remainingPercentage.toFixed(1)}%`;
-            case 'remaining-short':
-                return `Left: ${remainingPercentage.toFixed(1)}%`;
-            case 'remaining-long':
-                return `Context remaining: ${remainingPercentage.toFixed(1)}%`;
-            case 'used-plain':
-                return `${usedPercentage.toFixed(1)}%`;
-            case 'used-short':
-                return `Used: ${usedPercentage.toFixed(1)}%`;
-            case 'used-long':
-                return `Context used: ${usedPercentage.toFixed(1)}%`;
-            default:
-                return `${usedPercentage.toFixed(1)}%`;
+        case 'remaining-plain':
+            return `${remainingPercentage.toFixed(1)}%`;
+        case 'remaining-short':
+            return `Left: ${remainingPercentage.toFixed(1)}%`;
+        case 'remaining-long':
+            return `Context remaining: ${remainingPercentage.toFixed(1)}%`;
+        case 'used-plain':
+            return `${usedPercentage.toFixed(1)}%`;
+        case 'used-short':
+            return `Used: ${usedPercentage.toFixed(1)}%`;
+        case 'used-long':
+            return `Context used: ${usedPercentage.toFixed(1)}%`;
+        default:
+            return `${usedPercentage.toFixed(1)}%`;
         }
     }
 

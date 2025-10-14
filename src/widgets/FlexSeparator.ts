@@ -26,5 +26,5 @@ export class FlexSeparatorWidget implements Widget {
     }
 
     supportsRawValue(): boolean { return false; }
-    supportsColors(item: WidgetItem): boolean { return false; }
+    supportsColors(item: WidgetItem): boolean { return true; }
 }

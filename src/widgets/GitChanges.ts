@@ -23,9 +23,7 @@ export class GitChangesWidget implements Widget {
     }
 
     getEditorDisplay(item: WidgetItem): WidgetEditorDisplay {
-        return {
-            displayText: this.getDisplayName()
-        };
+        return { displayText: this.getDisplayName() };
     }
 
     render(item: WidgetItem, context: RenderContext, settings: Settings): string | null {
@@ -133,7 +131,7 @@ export class GitChangesWidget implements Widget {
                 if (statusOutput) {
                     // Count lines that start with M, A, D, R, C (modified/added/deleted/renamed/copied)
                     // Exclude ?? (untracked) as we count those separately
-                    modifiedFiles = statusOutput.split('\n').filter(line => {
+                    modifiedFiles = statusOutput.split('\n').filter((line) => {
                         const status = line.substring(0, 2).trim();
                         return status && status !== '??';
                     }).length;
