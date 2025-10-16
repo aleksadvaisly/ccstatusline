@@ -17,10 +17,10 @@ export class GitBranchWidget implements Widget {
 
     getAvailableStyles(): DisplayStyle[] {
         return [
-            { id: 'with-icon-show', label: '⎇ main (always show, even "no git")' },
-            { id: 'with-icon-hide', label: '⎇ main (hide if no git)' },
-            { id: 'plain-show', label: 'main (always show, even "no git")' },
-            { id: 'plain-hide', label: 'main (hide if no git)' }
+            { id: 'icon-only', label: '⎇ main / n/a' },
+            { id: 'icon-with-indicator', label: '⎇ main * / n/a' },
+            { id: 'plain-only', label: 'main / n/a' },
+            { id: 'plain-with-indicator', label: 'main * / n/a' }
         ];
     }
 
@@ -35,38 +35,52 @@ export class GitBranchWidget implements Widget {
             const hideNoGit = item.metadata?.hideNoGit === 'true';
             const isRaw = item.rawValue;
             if (hideNoGit) {
-                style = isRaw ? 'plain-hide' : 'with-icon-hide';
+                style = isRaw ? 'plain-with-indicator' : 'icon-with-indicator';
             } else {
-                style = isRaw ? 'plain-show' : 'with-icon-show';
+                style = isRaw ? 'plain-only' : 'icon-only';
             }
         }
 
-        const withIcon = style.startsWith('with-icon');
-        const hideNoGit = style.includes('hide');
+        // Backward compatibility: old style names (all old styles had indicators)
+        if (style === 'with-icon-show' || style === 'with-icon-hide') {
+            style = 'icon-with-indicator';
+        } else if (style === 'plain-show' || style === 'plain-hide') {
+            style = 'plain-with-indicator';
+        }
+
+        const withIcon = style.startsWith('icon');
+        const withIndicator = style.includes('indicator');
 
         if (context.isPreview) {
-            return withIcon ? '⎇ main *' : 'main *';
+            if (withIcon && withIndicator) {
+                return '⎇ main *';
+            } else if (withIcon) {
+                return '⎇ main';
+            } else if (withIndicator) {
+                return 'main *';
+            } else {
+                return 'main';
+            }
         }
 
         const branch = this.getGitBranch();
         if (branch) {
-            const hasChanges = this.hasGitChanges();
-            const commitsAhead = this.getCommitsAhead();
-
             let indicator = '';
-            if (hasChanges) {
-                indicator = ' *';
-            } else if (commitsAhead > 0) {
-                indicator = ' ↑';
+            if (withIndicator) {
+                const hasChanges = this.hasGitChanges();
+                const commitsAhead = this.getCommitsAhead();
+
+                if (hasChanges) {
+                    indicator = ' *';
+                } else if (commitsAhead > 0) {
+                    indicator = ' ↑';
+                }
             }
 
             return withIcon ? `⎇ ${branch}${indicator}` : `${branch}${indicator}`;
         }
 
-        if (hideNoGit) {
-            return null;
-        }
-        return withIcon ? '⎇ no git' : 'no git';
+        return 'n/a';
     }
 
     private getGitBranch(): string | null {

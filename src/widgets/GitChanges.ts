@@ -12,13 +12,15 @@ import type {
 
 export class GitChangesWidget implements Widget {
     getDefaultColor(): string { return 'yellow'; }
-    getDescription(): string { return 'Shows git changes count (+insertions, -deletions, ↑commits ahead, ?untracked, ±files)'; }
+    getDescription(): string { return 'Shows git changes as detailed count or simple indicator (* for changes, ↑ for unpushed commits)'; }
     getDisplayName(): string { return 'Git Changes'; }
 
     getAvailableStyles(): DisplayStyle[] {
         return [
-            { id: 'show-nogit', label: '(+42,-10,↑3,?5) / (no git)' },
-            { id: 'hide-nogit', label: '(+42,-10,↑3,?5) / (hidden)' }
+            { id: 'detailed-show', label: '(+42,-10,↑3,?5) / (no git)' },
+            { id: 'detailed-hide', label: '(+42,-10,↑3,?5) / (hidden)' },
+            { id: 'indicator-show', label: '* or ↑ / (no git)' },
+            { id: 'indicator-hide', label: '* or ↑ / (hidden)' }
         ];
     }
 
@@ -31,43 +33,64 @@ export class GitChangesWidget implements Widget {
         let style = item.displayStyle;
         if (!style) {
             const hideNoGit = item.metadata?.hideNoGit === 'true';
-            style = hideNoGit ? 'hide-nogit' : 'show-nogit';
+            style = hideNoGit ? 'detailed-hide' : 'detailed-show';
         }
 
-        const hideNoGit = style === 'hide-nogit';
+        // Backward compatibility: old style names
+        if (style === 'show-nogit') {
+            style = 'detailed-show';
+        } else if (style === 'hide-nogit') {
+            style = 'detailed-hide';
+        }
+
+        const isIndicator = style.startsWith('indicator');
+        const hideNoGit = style.includes('hide');
 
         if (context.isPreview) {
-            return '(+42,-10,↑3,?5)';
+            return isIndicator ? '*' : '(+42,-10,↑3,?5)';
         }
 
         const changes = this.getGitChanges();
         if (changes) {
-            const parts: string[] = [];
-            if (changes.insertions > 0) {
-                parts.push(`+${changes.insertions}`);
-            }
-            if (changes.deletions > 0) {
-                parts.push(`-${changes.deletions}`);
-            }
-            if (changes.commitsAhead > 0) {
-                parts.push(`↑${changes.commitsAhead}`);
-            }
-            if (changes.untracked > 0) {
-                parts.push(`?${changes.untracked}`);
-            }
+            if (isIndicator) {
+                // Indicator mode: * for changes, ↑ for commits ahead, null for clean
+                const hasChanges = changes.modifiedFiles > 0 || changes.untracked > 0;
+                if (hasChanges) {
+                    return '*';
+                } else if (changes.commitsAhead > 0) {
+                    return '↑';
+                } else {
+                    return null;
+                }
+            } else {
+                // Detailed mode: (+x,-x,↑x,?x,±x)
+                const parts: string[] = [];
+                if (changes.insertions > 0) {
+                    parts.push(`+${changes.insertions}`);
+                }
+                if (changes.deletions > 0) {
+                    parts.push(`-${changes.deletions}`);
+                }
+                if (changes.commitsAhead > 0) {
+                    parts.push(`↑${changes.commitsAhead}`);
+                }
+                if (changes.untracked > 0) {
+                    parts.push(`?${changes.untracked}`);
+                }
 
-            // If no line-based changes but files are modified (binary, deleted, etc.)
-            if (parts.length === 0 && changes.modifiedFiles > 0) {
-                parts.push(`±${changes.modifiedFiles}`);
-            }
+                // If no line-based changes but files are modified (binary, deleted, etc.)
+                if (parts.length === 0 && changes.modifiedFiles > 0) {
+                    parts.push(`±${changes.modifiedFiles}`);
+                }
 
-            if (parts.length === 0) {
-                return null;
-            }
+                if (parts.length === 0) {
+                    return null;
+                }
 
-            return `(${parts.join(',')})`;
+                return `(${parts.join(',')})`;
+            }
         }
-        return hideNoGit ? null : '(no git)';
+        return hideNoGit ? null : (isIndicator ? '(no git)' : '(no git)');
     }
 
     private getGitChanges(): { insertions: number; deletions: number; commitsAhead: number; untracked: number; modifiedFiles: number } | null {
