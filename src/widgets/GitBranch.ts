@@ -89,7 +89,22 @@ export class GitBranchWidget implements Widget {
                 encoding: 'utf8',
                 stdio: ['pipe', 'pipe', 'ignore']
             }).trim();
-            return branch || null;
+
+            if (branch) {
+                return branch;
+            }
+
+            // Branch is empty - could be detached HEAD state
+            // Try to get the short commit hash
+            try {
+                const hash = execSync('git rev-parse --short HEAD', {
+                    encoding: 'utf8',
+                    stdio: ['pipe', 'pipe', 'ignore']
+                }).trim();
+                return hash ? hash : null;
+            } catch {
+                return null;
+            }
         } catch {
             return null;
         }
