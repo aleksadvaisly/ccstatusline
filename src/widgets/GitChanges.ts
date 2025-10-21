@@ -12,13 +12,13 @@ import type {
 
 export class GitChangesWidget implements Widget {
     getDefaultColor(): string { return 'yellow'; }
-    getDescription(): string { return 'Shows git changes as detailed count or simple indicator (* for changes, ↑ for unpushed commits)'; }
+    getDescription(): string { return 'Shows git changes as detailed count or simple indicator (*x staged, +x insertions, -x deletions, ↑x unpushed, ?x untracked)'; }
     getDisplayName(): string { return 'Git Changes'; }
 
     getAvailableStyles(): DisplayStyle[] {
         return [
-            { id: 'detailed-show', label: '(+42,-10,↑3,?5) / (no git)' },
-            { id: 'detailed-hide', label: '(+42,-10,↑3,?5) / (hidden)' },
+            { id: 'detailed-show', label: '(*2,+42,-10,↑3,?5) / (no git)' },
+            { id: 'detailed-hide', label: '(*2,+42,-10,↑3,?5) / (hidden)' },
             { id: 'indicator-show', label: '* or ↑ / (no git)' },
             { id: 'indicator-hide', label: '* or ↑ / (hidden)' }
         ];
@@ -47,7 +47,7 @@ export class GitChangesWidget implements Widget {
         const hideNoGit = style.includes('hide');
 
         if (context.isPreview) {
-            return isIndicator ? '*' : '(+42,-10,↑3,?5)';
+            return isIndicator ? '*' : '(*2,+42,-10,↑3,?5)';
         }
 
         const changes = this.getGitChanges();
@@ -63,8 +63,11 @@ export class GitChangesWidget implements Widget {
                     return null;
                 }
             } else {
-                // Detailed mode: (+x,-x,↑x,?x,±x)
+                // Detailed mode: (*x,+x,-x,↑x,?x,±x)
                 const parts: string[] = [];
+                if (changes.stagedFiles > 0) {
+                    parts.push(`*${changes.stagedFiles}`);
+                }
                 if (changes.insertions > 0) {
                     parts.push(`+${changes.insertions}`);
                 }
@@ -93,7 +96,7 @@ export class GitChangesWidget implements Widget {
         return hideNoGit ? null : (isIndicator ? '(no git)' : '(no git)');
     }
 
-    private getGitChanges(): { insertions: number; deletions: number; commitsAhead: number; untracked: number; modifiedFiles: number } | null {
+    private getGitChanges(): { insertions: number; deletions: number; commitsAhead: number; untracked: number; modifiedFiles: number; stagedFiles: number } | null {
         try {
             let totalInsertions = 0;
             let totalDeletions = 0;
@@ -146,6 +149,7 @@ export class GitChangesWidget implements Widget {
 
             // Count modified files (staged + unstaged, excluding untracked)
             let modifiedFiles = 0;
+            let stagedFiles = 0;
             try {
                 const statusOutput = execSync('git status --porcelain', {
                     encoding: 'utf8',
@@ -158,12 +162,19 @@ export class GitChangesWidget implements Widget {
                         const status = line.substring(0, 2).trim();
                         return status && status !== '??';
                     }).length;
+
+                    // Count staged files (first column not space or ?)
+                    stagedFiles = statusOutput.split('\n').filter((line) => {
+                        const firstChar = line[0];
+                        return firstChar && firstChar !== ' ' && firstChar !== '?';
+                    }).length;
                 }
             } catch {
                 modifiedFiles = 0;
+                stagedFiles = 0;
             }
 
-            return { insertions: totalInsertions, deletions: totalDeletions, commitsAhead, untracked, modifiedFiles };
+            return { insertions: totalInsertions, deletions: totalDeletions, commitsAhead, untracked, modifiedFiles, stagedFiles };
         } catch {
             return null;
         }
