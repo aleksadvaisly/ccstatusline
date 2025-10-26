@@ -17,6 +17,7 @@ import {
 } from '../../utils/colors';
 import { getWidget } from '../../utils/widgets';
 
+import { ColorPicker256 } from './ColorPicker256';
 import { ConfirmDialog } from './ConfirmDialog';
 
 export interface ColorMenuProps {
@@ -30,8 +31,7 @@ export interface ColorMenuProps {
 export const ColorMenu: React.FC<ColorMenuProps> = ({ widgets, lineIndex, settings, onUpdate, onBack }) => {
     const [hexInputMode, setHexInputMode] = useState(false);
     const [hexInput, setHexInput] = useState('');
-    const [ansi256InputMode, setAnsi256InputMode] = useState(false);
-    const [ansi256Input, setAnsi256Input] = useState('');
+    const [ansi256PickerMode, setAnsi256PickerMode] = useState<'numeric' | 'hsl' | false>(false);
     const [showClearConfirm, setShowClearConfirm] = useState(false);
 
     const powerlineEnabled = settings.powerline.enabled;
@@ -56,6 +56,11 @@ export const ColorMenu: React.FC<ColorMenuProps> = ({ widgets, lineIndex, settin
 
         // Skip input handling when confirmation is active - let ConfirmDialog handle it
         if (showClearConfirm) {
+            return;
+        }
+
+        // Skip input handling when color picker is active - let ColorPicker256 handle it
+        if (ansi256PickerMode) {
             return;
         }
 
@@ -102,57 +107,6 @@ export const ColorMenu: React.FC<ColorMenuProps> = ({ widgets, lineIndex, settin
             return;
         }
 
-        // Handle ansi256 input mode
-        if (ansi256InputMode) {
-            // Disable arrow keys in input mode
-            if (key.upArrow || key.downArrow) {
-                return;
-            }
-            if (key.escape) {
-                setAnsi256InputMode(false);
-                setAnsi256Input('');
-            } else if (key.return) {
-                // Validate and apply the ansi256 color
-                const code = parseInt(ansi256Input, 10);
-                if (!isNaN(code) && code >= 0 && code <= 255) {
-                    const ansiColor = `ansi256:${code}`;
-
-                    const selectedWidget = colorableWidgets.find(widget => widget.id === highlightedItemId);
-
-                    if (selectedWidget) {
-                        // IMPORTANT: Update ALL items (not just colorableWidgets) to maintain proper indexing
-                        const newItems = widgets.map((widget) => {
-                            if (widget.id === highlightedItemId) {
-                                if (editingBackground) {
-                                    return { ...widget, backgroundColor: ansiColor };
-                                } else {
-                                    return { ...widget, color: ansiColor };
-                                }
-                            }
-                            return widget;
-                        });
-
-                        onUpdate(newItems);
-                        setAnsi256InputMode(false);
-                        setAnsi256Input('');
-                    }
-                }
-            } else if (key.backspace || key.delete) {
-                setAnsi256Input(ansi256Input.slice(0, -1));
-            } else if (input && ansi256Input.length < 3) {
-                // Only accept numeric characters (0-9)
-                if (/^[0-9]$/.test(input)) {
-                    const newInput = ansi256Input + input;
-                    const code = parseInt(newInput, 10);
-                    // Only allow if it won't exceed 255
-                    if (code <= 255) {
-                        setAnsi256Input(newInput);
-                    }
-                }
-            }
-            return;
-        }
-
         // Ignore number keys to prevent SelectInput numerical navigation
         if (input && /^[0-9]$/.test(input)) {
             return;
@@ -166,16 +120,20 @@ export const ColorMenu: React.FC<ColorMenuProps> = ({ widgets, lineIndex, settin
                 onBack();
             }
         } else if (input === 'h' || input === 'H') {
-            // Enter hex input mode (only in truecolor mode)
-            if (highlightedItemId && highlightedItemId !== 'back' && settings.colorLevel === 3) {
-                setHexInputMode(true);
-                setHexInput('');
+            if (highlightedItemId && highlightedItemId !== 'back') {
+                if (settings.colorLevel === 3) {
+                    // Enter hex input mode (truecolor mode)
+                    setHexInputMode(true);
+                    setHexInput('');
+                } else if (settings.colorLevel === 2) {
+                    // Enter HSL sorted color picker (256 color mode)
+                    setAnsi256PickerMode('hsl');
+                }
             }
         } else if (input === 'a' || input === 'A') {
-            // Enter ansi256 input mode (only in 256 color mode)
+            // Enter ansi256 numeric picker mode (only in 256 color mode)
             if (highlightedItemId && highlightedItemId !== 'back' && settings.colorLevel === 2) {
-                setAnsi256InputMode(true);
-                setAnsi256Input('');
+                setAnsi256PickerMode('numeric');
             }
         } else if (input === 'f' || input === 'F') {
             if (colorableWidgets.length > 0) {
@@ -451,6 +409,48 @@ export const ColorMenu: React.FC<ColorMenuProps> = ({ widgets, lineIndex, settin
                 ? '⚠ Global override for BG active'
                 : null;
 
+    if (ansi256PickerMode) {
+        const selectedWidget = colorableWidgets.find(widget => widget.id === highlightedItemId);
+        const currentColorValue = editingBackground
+            ? (selectedWidget?.backgroundColor ?? '')
+            : (selectedWidget?.color ?? '');
+
+        let initialColor = 0;
+        if (currentColorValue.startsWith('ansi256:')) {
+            const code = parseInt(currentColorValue.substring(8), 10);
+            if (!isNaN(code) && code >= 0 && code <= 255) {
+                initialColor = code;
+            }
+        }
+
+        return (
+            <ColorPicker256
+                initialColor={initialColor}
+                sortMode={ansi256PickerMode}
+                onSelect={(colorCode) => {
+                    const ansiColor = `ansi256:${colorCode}`;
+                    if (selectedWidget) {
+                        const newItems = widgets.map((widget) => {
+                            if (widget.id === highlightedItemId) {
+                                if (editingBackground) {
+                                    return { ...widget, backgroundColor: ansiColor };
+                                } else {
+                                    return { ...widget, color: ansiColor };
+                                }
+                            }
+                            return widget;
+                        });
+                        onUpdate(newItems);
+                    }
+                    setAnsi256PickerMode(false);
+                }}
+                onCancel={() => {
+                    setAnsi256PickerMode(false);
+                }}
+            />
+        );
+    }
+
     return (
         <Box flexDirection='column'>
             <Box>
@@ -477,16 +477,6 @@ export const ColorMenu: React.FC<ColorMenuProps> = ({ widgets, lineIndex, settin
                     <Text> </Text>
                     <Text dimColor>Press Enter when done, ESC to cancel</Text>
                 </Box>
-            ) : ansi256InputMode ? (
-                <Box flexDirection='column'>
-                    <Text>Enter ANSI 256 color code (0-255):</Text>
-                    <Text>
-                        {ansi256Input}
-                        <Text dimColor>{ansi256Input.length === 0 ? '___' : ansi256Input.length === 1 ? '__' : ansi256Input.length === 2 ? '_' : ''}</Text>
-                    </Text>
-                    <Text> </Text>
-                    <Text dimColor>Press Enter when done, ESC to cancel</Text>
-                </Box>
             ) : (
                 <>
                     <Text dimColor>
@@ -494,7 +484,7 @@ export const ColorMenu: React.FC<ColorMenuProps> = ({ widgets, lineIndex, settin
                         {' '}
                         {editingBackground ? 'background' : 'foreground'}
                         , (f) to toggle bg/fg, (b)old,
-                        {settings.colorLevel === 3 ? ' (h)ex,' : settings.colorLevel === 2 ? ' (a)nsi256,' : ''}
+                        {settings.colorLevel === 3 ? ' (h)ex,' : settings.colorLevel === 2 ? ' (a)nsi256, (h)sl,' : ''}
                         {' '}
                         (r)eset, (c)lear all, ESC to go back
                     </Text>
@@ -521,7 +511,7 @@ export const ColorMenu: React.FC<ColorMenuProps> = ({ widgets, lineIndex, settin
                 </>
             )}
             <Box marginTop={1}>
-                {(hexInputMode || ansi256InputMode) ? (
+                {hexInputMode ? (
                     // Static list when in input mode - no keyboard interaction
                     <Box flexDirection='column'>
                         {menuItems.map(item => (

@@ -12,7 +12,7 @@ import type {
 
 export class GitBranchWidget implements Widget {
     getDefaultColor(): string { return 'magenta'; }
-    getDescription(): string { return 'Shows the current git branch name with * for changes and ↑ for unpushed commits'; }
+    getDescription(): string { return 'Shows the current git branch name with ✗ for gone upstream, * for changes, and ↑ for unpushed commits'; }
     getDisplayName(): string { return 'Git Branch'; }
 
     getAvailableStyles(): DisplayStyle[] {
@@ -67,10 +67,13 @@ export class GitBranchWidget implements Widget {
         if (branch) {
             let indicator = '';
             if (withIndicator) {
+                const upstreamGone = this.isUpstreamGone();
                 const hasChanges = this.hasGitChanges();
                 const commitsAhead = this.getCommitsAhead();
 
-                if (hasChanges) {
+                if (upstreamGone) {
+                    indicator = ' ✗';
+                } else if (hasChanges) {
                     indicator = ' *';
                 } else if (commitsAhead > 0) {
                     indicator = ' ↑';
@@ -131,6 +134,18 @@ export class GitBranchWidget implements Widget {
             return parseInt(count, 10) || 0;
         } catch {
             return 0;
+        }
+    }
+
+    private isUpstreamGone(): boolean {
+        try {
+            execSync('git rev-parse --abbrev-ref @{u}', {
+                encoding: 'utf8',
+                stdio: ['pipe', 'pipe', 'ignore']
+            });
+            return false;
+        } catch {
+            return true;
         }
     }
 
