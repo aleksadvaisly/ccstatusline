@@ -12,11 +12,7 @@ No installation required. Run directly with npx:
 npx ccstatusline@latest
 ```
 
-Or with Bun for faster startup:
-
-```bash
-bunx ccstatusline@latest
-```
+(Bun is also supported via `bunx ccstatusline@latest` if you have it installed)
 
 ## Usage
 
@@ -39,13 +35,7 @@ Edit `~/.claude/settings.json`:
 }
 ```
 
-Or with Bun:
-
-```json
-{
-  "statusLine": "bunx ccstatusline@latest"
-}
-```
+(Or use `bunx ccstatusline@latest` if you prefer Bun)
 
 ### Custom Config Directory
 
@@ -62,7 +52,7 @@ export CLAUDE_CONFIG_DIR=/custom/path/to/.claude
 - Multi-line support
 - Interactive TUI for configuration
 - Global formatting options (padding, separators, bold, background)
-- Cross-platform: Node.js 18+ (Bun optional)
+- Cross-platform: Node.js 18+ (Bun also supported)
 - Smart width detection with flex separators
 - Context scaling factor (1.04) for percentage calculations
 
@@ -99,7 +89,6 @@ export CLAUDE_CONFIG_DIR=/custom/path/to/.claude
 Requirements:
 - Node.js 18+
 - Git
-- Bun (optional, for faster development)
 
 ### Setup
 
@@ -107,12 +96,6 @@ Requirements:
 git clone https://github.com/YOUR_USERNAME/ccstatusline.git
 cd ccstatusline
 npm install
-```
-
-Or with Bun:
-
-```bash
-bun install
 ```
 
 ### Commands
@@ -139,7 +122,7 @@ make build    # Build project
 make run      # Build and run TUI
 ```
 
-Makefile auto-detects bun or npm.
+Makefile auto-detects npm or bun (if installed).
 
 ### Testing Local Changes
 

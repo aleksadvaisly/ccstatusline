@@ -12,22 +12,23 @@ ccstatusline is a customizable status line formatter for Claude Code CLI that di
 
 ```bash
 # Install dependencies
-bun install
+npm install
 
 # Run with patch (TUI mode)
-bun run start
-
-# Run directly (TUI mode)
-bun run statusline
+npm run start
 
 # Test with piped input
-echo '{"model":{"display_name":"Claude 3.5 Sonnet"},"transcript_path":"test.jsonl"}' | bun run src/ccstatusline.ts
+echo '{"model":{"display_name":"Claude 3.5 Sonnet"},"transcript_path":"test.jsonl"}' | npm run start
 
 # Build for npm distribution
-bun run build   # Creates dist/ccstatusline.js with Node.js 14+ compatibility
+npm run build   # Creates dist/ccstatusline.js with Node.js 14+ compatibility
 
 # Lint and type check
-bun run lint   # Runs TypeScript type checking and ESLint with auto-fix
+npm run lint   # Runs TypeScript type checking and ESLint with auto-fix
+
+# Using Makefile (auto-detects npm or bun)
+make build    # Build the project
+make run      # Build and run the TUI
 ```
 
 ## Architecture
@@ -83,21 +84,12 @@ Custom widgets implementing the StatusItemWidget interface:
 - **Custom commands**: Execute shell commands and display output in status line
 - **Mergeable items**: Items can be merged together with or without padding
 
-## Bun Usage Preferences
-
-Default to using Bun instead of Node.js:
-- Use `bun <file>` instead of `node <file>` or `ts-node <file>`
-- Use `bun install` instead of `npm install`
-- Use `bun run <script>` instead of `npm run <script>`
-- Use `bun build` with appropriate options for building
-- Bun automatically loads .env, so don't use dotenv
-
 ## Important Notes
 
-- **patch-package**: The project uses patch-package to fix ink-gradient compatibility. Always run `bun run patch` before starting development
+- **patch-package**: The project uses patches for ink compatibility (managed via patchedDependencies in package.json)
 - **ESLint configuration**: Uses flat config format (eslint.config.js) with TypeScript and React plugins
 - **Build target**: When building for distribution, target Node.js 14+ for maximum compatibility
 - **Dependencies**: All runtime dependencies are bundled using `--packages=external` for npm package
-- **Type checking and linting**: Only run via `bun run lint` command, never using `npx eslint` or `eslint` directly. Never run `tsx`, `bun tsc` or any other variation
+- **Type checking and linting**: Only run via `npm run lint` command, never using `npx eslint` or `eslint` directly. Never run `tsx`, `tsc` or any other variation
 - **Lint rules**: Never disable a lint rule via a comment, no matter how benign the lint warning or error may seem
 - **Testing**: No test framework is currently configured. Manual testing is done via piped input and TUI interaction
