@@ -3,6 +3,7 @@ export { OutputStyleWidget } from './OutputStyle';
 export { GitBranchWidget } from './GitBranch';
 export { GitChangesWidget } from './GitChanges';
 export { GitWorktreeWidget } from './GitWorktree';
+export { GitUserWidget } from './GitUser';
 export { TokensInputWidget } from './TokensInput';
 export { TokensOutputWidget } from './TokensOutput';
 export { TokensCachedWidget } from './TokensCached';
