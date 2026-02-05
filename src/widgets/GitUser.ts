@@ -43,8 +43,9 @@ export class GitUserWidget implements Widget {
             }
         }
 
-        const userName = this.getGitUserName();
-        const userEmail = this.getGitUserEmail();
+        const cwd = context.cwd;
+        const userName = this.getGitUserName(cwd);
+        const userEmail = this.getGitUserEmail(cwd);
 
         switch (style) {
         case 'name-only':
@@ -66,11 +67,12 @@ export class GitUserWidget implements Widget {
         }
     }
 
-    private getGitUserName(): string | null {
+    private getGitUserName(cwd?: string): string | null {
         try {
             const name = execSync('git config user.name', {
                 encoding: 'utf8',
-                stdio: ['pipe', 'pipe', 'ignore']
+                stdio: ['pipe', 'pipe', 'ignore'],
+                cwd
             }).trim();
             return name || null;
         } catch {
@@ -78,11 +80,12 @@ export class GitUserWidget implements Widget {
         }
     }
 
-    private getGitUserEmail(): string | null {
+    private getGitUserEmail(cwd?: string): string | null {
         try {
             const email = execSync('git config user.email', {
                 encoding: 'utf8',
-                stdio: ['pipe', 'pipe', 'ignore']
+                stdio: ['pipe', 'pipe', 'ignore'],
+                cwd
             }).trim();
             return email || null;
         } catch {

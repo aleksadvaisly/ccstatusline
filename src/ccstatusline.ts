@@ -92,7 +92,8 @@ async function renderMultipleLines(data: StatusJSON) {
         tokenMetrics,
         sessionDuration,
         blockMetrics,
-        isPreview: false
+        isPreview: false,
+        cwd: data.cwd ?? data.workspace?.current_dir
     };
 
     // Always pre-render all widgets once (for efficiency)

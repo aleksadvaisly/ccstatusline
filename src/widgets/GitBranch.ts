@@ -63,13 +63,14 @@ export class GitBranchWidget implements Widget {
             }
         }
 
-        const branch = this.getGitBranch();
+        const cwd = context.cwd;
+        const branch = this.getGitBranch(cwd);
         if (branch) {
             let indicator = '';
             if (withIndicator) {
-                const upstreamGone = this.isUpstreamGone();
-                const hasChanges = this.hasGitChanges();
-                const commitsAhead = this.getCommitsAhead();
+                const upstreamGone = this.isUpstreamGone(cwd);
+                const hasChanges = this.hasGitChanges(cwd);
+                const commitsAhead = this.getCommitsAhead(cwd);
 
                 if (upstreamGone) {
                     indicator = ' ✗';
@@ -86,23 +87,23 @@ export class GitBranchWidget implements Widget {
         return 'n/a';
     }
 
-    private getGitBranch(): string | null {
+    private getGitBranch(cwd?: string): string | null {
         try {
             const branch = execSync('git branch --show-current', {
                 encoding: 'utf8',
-                stdio: ['pipe', 'pipe', 'ignore']
+                stdio: ['pipe', 'pipe', 'ignore'],
+                cwd
             }).trim();
 
             if (branch) {
                 return branch;
             }
 
-            // Branch is empty - could be detached HEAD state
-            // Try to get the short commit hash
             try {
                 const hash = execSync('git rev-parse --short HEAD', {
                     encoding: 'utf8',
-                    stdio: ['pipe', 'pipe', 'ignore']
+                    stdio: ['pipe', 'pipe', 'ignore'],
+                    cwd
                 }).trim();
                 return hash ? hash : null;
             } catch {
@@ -113,11 +114,12 @@ export class GitBranchWidget implements Widget {
         }
     }
 
-    private hasGitChanges(): boolean {
+    private hasGitChanges(cwd?: string): boolean {
         try {
             const status = execSync('git status --porcelain', {
                 encoding: 'utf8',
-                stdio: ['pipe', 'pipe', 'ignore']
+                stdio: ['pipe', 'pipe', 'ignore'],
+                cwd
             }).trim();
             return status.length > 0;
         } catch {
@@ -125,11 +127,12 @@ export class GitBranchWidget implements Widget {
         }
     }
 
-    private getCommitsAhead(): number {
+    private getCommitsAhead(cwd?: string): number {
         try {
             const count = execSync('git rev-list --count @{u}..HEAD', {
                 encoding: 'utf8',
-                stdio: ['pipe', 'pipe', 'ignore']
+                stdio: ['pipe', 'pipe', 'ignore'],
+                cwd
             }).trim();
             return parseInt(count, 10) || 0;
         } catch {
@@ -137,11 +140,12 @@ export class GitBranchWidget implements Widget {
         }
     }
 
-    private isUpstreamGone(): boolean {
+    private isUpstreamGone(cwd?: string): boolean {
         try {
             execSync('git rev-parse --abbrev-ref @{u}', {
                 encoding: 'utf8',
-                stdio: ['pipe', 'pipe', 'ignore']
+                stdio: ['pipe', 'pipe', 'ignore'],
+                cwd
             });
             return false;
         } catch {

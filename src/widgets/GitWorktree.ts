@@ -47,7 +47,7 @@ export class GitWorktreeWidget implements Widget {
             return withIcon ? '𖠰 main' : 'main';
         }
 
-        const worktree = this.getGitWorktree();
+        const worktree = this.getGitWorktree(context.cwd);
         if (worktree) {
             return withIcon ? `𖠰 ${worktree}` : worktree;
         }
@@ -58,11 +58,12 @@ export class GitWorktreeWidget implements Widget {
         return withIcon ? '𖠰 no git' : 'no git';
     }
 
-    private getGitWorktree(): string | null {
+    private getGitWorktree(cwd?: string): string | null {
         try {
             const worktreeDir = execSync('git rev-parse --git-dir', {
                 encoding: 'utf8',
-                stdio: ['pipe', 'pipe', 'ignore']
+                stdio: ['pipe', 'pipe', 'ignore'],
+                cwd
             }).trim();
 
             // /some/path/.git or .git
