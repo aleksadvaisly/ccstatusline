@@ -18,6 +18,7 @@ export class ContextPercentageUsableWidget implements Widget {
     getAvailableStyles(): DisplayStyle[] {
         return [
             { id: 'remaining-plain', label: '88%' },
+            { id: 'remaining-left-suffix', label: '88% left' },
             { id: 'remaining-short', label: 'Left: 88%' },
             { id: 'remaining-long', label: 'Usable remaining: 88%' },
             { id: 'used-plain', label: '12%' },
@@ -60,6 +61,8 @@ export class ContextPercentageUsableWidget implements Widget {
         switch (style) {
         case 'remaining-plain':
             return `${remainingPercentage.toFixed(1)}%`;
+        case 'remaining-left-suffix':
+            return `${remainingPercentage.toFixed(1)}% left`;
         case 'remaining-short':
             return `Left: ${remainingPercentage.toFixed(1)}%`;
         case 'remaining-long':

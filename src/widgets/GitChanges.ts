@@ -120,7 +120,7 @@ export class GitChangesWidget implements Widget {
                     return firstChar && firstChar !== ' ' && firstChar !== '?';
                 }).length;
 
-                untracked = lines.filter((line) => line.startsWith('??')).length;
+                untracked = lines.filter(line => line.startsWith('??')).length;
             }
         } catch {
             return null;
