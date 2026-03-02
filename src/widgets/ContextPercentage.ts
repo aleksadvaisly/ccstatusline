@@ -110,21 +110,21 @@ export class ContextPercentageWidget implements Widget {
         // Format based on style
         switch (style) {
         case 'remaining-plain':
-            return `${remainingPercentage.toFixed(1)}%`;
+            return this.formatContextPercentage(remainingPercentage);
         case 'remaining-left-suffix':
-            return `${remainingPercentage.toFixed(1)}% left`;
+            return `${this.formatContextPercentage(remainingPercentage)} left`;
         case 'remaining-short':
-            return `Left: ${remainingPercentage.toFixed(1)}%`;
+            return `Left: ${this.formatContextPercentage(remainingPercentage)}`;
         case 'remaining-long':
-            return `Context remaining: ${remainingPercentage.toFixed(1)}%`;
+            return `Context remaining: ${this.formatContextPercentage(remainingPercentage)}`;
         case 'used-plain':
-            return `${usedPercentage.toFixed(1)}%`;
+            return this.formatContextPercentage(usedPercentage);
         case 'used-short':
-            return `Used: ${usedPercentage.toFixed(1)}%`;
+            return `Used: ${this.formatContextPercentage(usedPercentage)}`;
         case 'used-long':
-            return `Context used: ${usedPercentage.toFixed(1)}%`;
+            return `Context used: ${this.formatContextPercentage(usedPercentage)}`;
         default:
-            return `${usedPercentage.toFixed(1)}%`;
+            return this.formatContextPercentage(usedPercentage);
         }
     }
 
@@ -171,6 +171,10 @@ export class ContextPercentageWidget implements Widget {
             return percent;
 
         return Math.max(0, Math.min(100, 100 - percent));
+    }
+
+    private formatContextPercentage(percent: number): string {
+        return `${Math.round(percent)}%`;
     }
 
     getCustomKeybinds(): CustomKeybind[] {
