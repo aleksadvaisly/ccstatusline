@@ -12,7 +12,6 @@ import type {
     WidgetItem
 } from '../types/Widget';
 
-const CONTEXT_SCALING_FACTOR = 1.04;
 const CC_USAGE_STATUS_PATH = path.join(os.homedir(), '.cc-usage', 'status.json');
 
 interface CCUsageStatus {
@@ -102,7 +101,7 @@ export class ContextPercentageWidget implements Widget {
             usedPercentage = 9.3;
             remainingPercentage = 90.7;
         } else if (context.tokenMetrics) {
-            usedPercentage = Math.min(100, (context.tokenMetrics.contextLength / 200000) * 100 * CONTEXT_SCALING_FACTOR);
+            usedPercentage = Math.min(100, (context.tokenMetrics.contextLength / 200000) * 100);
             remainingPercentage = 100 - usedPercentage;
         } else {
             return null;
