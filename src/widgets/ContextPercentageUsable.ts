@@ -10,7 +10,7 @@ import type {
 
 export class ContextPercentageUsableWidget implements Widget {
     getDefaultColor(): string { return 'green'; }
-    getDescription(): string { return 'Shows percentage of usable context window used or remaining (of 160k tokens before auto-compact)'; }
+    getDescription(): string { return 'Shows percentage of usable context window used or remaining (of 167k tokens before auto-compact)'; }
     getDisplayName(): string { return 'Context % (usable)'; }
 
     getAvailableStyles(): DisplayStyle[] {
@@ -49,7 +49,7 @@ export class ContextPercentageUsableWidget implements Widget {
             usedPercentage = 11.6;
             remainingPercentage = 88.4;
         } else if (context.tokenMetrics) {
-            usedPercentage = Math.min(100, (context.tokenMetrics.contextLength / 160000) * 100);
+            usedPercentage = Math.min(100, (context.tokenMetrics.contextLength / 167000) * 100);
             remainingPercentage = 100 - usedPercentage;
         } else {
             return null;
