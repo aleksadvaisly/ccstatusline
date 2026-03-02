@@ -63,6 +63,7 @@ export CLAUDE_CONFIG_DIR=/custom/path/to/.claude
 - Git Changes (insertions, deletions, commits ahead, untracked files)
 - Git Worktree
 - Session Clock
+- Wall Clock
 - Session Cost
 - Block Timer (time/progress bar modes)
 - Current Working Directory

@@ -13,6 +13,7 @@ export { ContextPercentageWidget } from './ContextPercentage';
 export { ContextPercentageUsableWidget } from './ContextPercentageUsable';
 export { SessionClockWidget } from './SessionClock';
 export { SessionCostWidget } from './SessionCost';
+export { WallClockWidget } from './WallClock';
 export { TerminalWidthWidget } from './TerminalWidth';
 export { VersionWidget } from './Version';
 export { CustomTextWidget } from './CustomText';
