@@ -1,7 +1,12 @@
 import { build } from 'esbuild';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
-import { readFileSync, writeFileSync, chmodSync } from 'fs';
+import {
+  chmodSync,
+  copyFileSync,
+  readFileSync,
+  writeFileSync
+} from 'fs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -49,5 +54,10 @@ const require = __createRequire(import.meta.url);
 
 writeFileSync(outfile, shimCode + content);
 chmodSync(outfile, 0o755);
+
+const usageScriptSource = join(__dirname, 'scripts', 'cc-usage-tmux.sh');
+const usageScriptDest = join(__dirname, 'dist', 'cc-usage-tmux.sh');
+copyFileSync(usageScriptSource, usageScriptDest);
+chmodSync(usageScriptDest, 0o755);
 
 console.log('Build complete: dist/ccstatusline.js');

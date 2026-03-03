@@ -1,7 +1,3 @@
-import * as fs from 'fs';
-import * as os from 'os';
-import * as path from 'path';
-
 import type { RenderContext } from '../types/RenderContext';
 import type { Settings } from '../types/Settings';
 import type {
@@ -11,15 +7,7 @@ import type {
     WidgetEditorDisplay,
     WidgetItem
 } from '../types/Widget';
-
-const CC_USAGE_STATUS_PATH = path.join(os.homedir(), '.cc-usage', 'status.json');
-
-interface CCUsageStatus {
-    weeklyPercent?: number;
-    weeklyReset?: string;
-    sessionPercent?: number;
-    sessionReset?: string;
-}
+import { getCCUsageStatus } from '../utils/ccusage';
 
 export class ContextPercentageWidget implements Widget {
     getDefaultColor(): string { return 'blue'; }
@@ -74,7 +62,7 @@ export class ContextPercentageWidget implements Widget {
                 return '1 hr 37 min 31%';
             }
 
-            const usageStatus = this.getCCUsageStatus();
+            const usageStatus = getCCUsageStatus();
             if (!usageStatus)
                 return null;
 
@@ -128,22 +116,6 @@ export class ContextPercentageWidget implements Widget {
         }
     }
 
-    private getCCUsageStatus(): CCUsageStatus | null {
-        try {
-            const rawStatus = fs.readFileSync(CC_USAGE_STATUS_PATH, 'utf8');
-            const parsed = JSON.parse(rawStatus) as Record<string, unknown>;
-
-            return {
-                weeklyPercent: typeof parsed.weekly_percent === 'number' ? parsed.weekly_percent : undefined,
-                weeklyReset: typeof parsed.weekly_reset === 'string' ? parsed.weekly_reset : undefined,
-                sessionPercent: typeof parsed.session_percent === 'number' ? parsed.session_percent : undefined,
-                sessionReset: typeof parsed.session_reset === 'string' ? parsed.session_reset : undefined
-            };
-        } catch {
-            return null;
-        }
-    }
-
     private cleanResetText(resetText: string): string {
         const withoutPrefix = resetText
             .replace(/^Resets in /, '')
@@ -157,7 +129,7 @@ export class ContextPercentageWidget implements Widget {
             .replace(/\b(\d+)\s*minutes?\b/gi, '$1m')
             .replace(/\b(\d+)\s*secs?\b/gi, '$1s')
             .replace(/\b(\d+)\s*seconds?\b/gi, '$1s')
-            .replace(/\s+([ap]m)\b/gi, (_match: string, meridiem: string) => meridiem.toUpperCase())
+            .replace(/([0-9:])\s*([ap]m)\b/gi, (_match: string, prefix: string, meridiem: string) => `${prefix}${meridiem.toUpperCase()}`)
             .replace(/\s{2,}/g, ' ')
             .trim();
     }
