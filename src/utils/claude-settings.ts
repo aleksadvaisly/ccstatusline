@@ -5,6 +5,8 @@ import * as path from 'path';
 
 import type { ClaudeSettings } from '../types/ClaudeSettings';
 
+import { installCCUsageScript } from './ccusage';
+
 // Re-export for backward compatibility
 export type { ClaudeSettings };
 
@@ -111,6 +113,7 @@ export function isBunxAvailable(): boolean {
 
 export async function installStatusLine(useBunx = false, customCommand?: string): Promise<void> {
     const settings = await loadClaudeSettings();
+    installCCUsageScript();
 
     // Update settings with our status line (confirmation already handled in TUI)
     settings.statusLine = {
