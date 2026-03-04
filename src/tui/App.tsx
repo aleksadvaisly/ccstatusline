@@ -16,6 +16,10 @@ import React, {
 import type { Settings } from '../types/Settings';
 import type { WidgetItem } from '../types/Widget';
 import {
+    getTmuxStatus,
+    type TmuxStatus
+} from '../utils/ccusage';
+import {
     CCSTATUSLINE_COMMANDS,
     getClaudeSettingsPath,
     getExistingStatusLine,
@@ -69,6 +73,7 @@ export const App: React.FC = () => {
     const [existingStatusLine, setExistingStatusLine] = useState<string | null>(null);
     const [saveMessage, setSaveMessage] = useState<string | null>(null);
     const [previewIsTruncated, setPreviewIsTruncated] = useState(false);
+    const [tmuxStatus, setTmuxStatus] = useState<TmuxStatus>({ available: true, installHints: [] });
 
     useEffect(() => {
         // Load existing status line
@@ -81,6 +86,7 @@ export const App: React.FC = () => {
             setOriginalSettings(JSON.parse(JSON.stringify(loadedSettings)) as Settings); // Deep copy
         });
         void isInstalled().then(setIsClaudeInstalled);
+        setTmuxStatus(getTmuxStatus());
 
         // Check for Powerline fonts on startup (use sync version that doesn't call execSync)
         const fontStatus = checkPowerlineFonts();
@@ -291,6 +297,21 @@ export const App: React.FC = () => {
         setSettings({ ...settings, lines: newLines });
     };
 
+    const requiresCCUsage = settings.lines.some(line => line.some((widget) => {
+        if (widget.type === 'weekly-usage' || widget.type === 'session-usage')
+            return true;
+
+        if (widget.type === 'context-percentage') {
+            const style = widget.displayStyle;
+            return style === 'weekly-used-reset'
+                || style === 'weekly-left-reset'
+                || style === 'session-reset-used'
+                || style === 'session-reset-left';
+        }
+
+        return false;
+    }));
+
     const handleLineSelect = (lineIndex: number) => {
         setSelectedLine(lineIndex);
         setScreen('items');
@@ -320,6 +341,20 @@ export const App: React.FC = () => {
                 settings={settings}
                 onTruncationChange={setPreviewIsTruncated}
             />
+            {!tmuxStatus.available && (requiresCCUsage || screen === 'install') && (
+                <Box marginTop={1} flexDirection='column'>
+                    <Text color='yellow'>⚠ tmux is required for `5h Usage` and `Weekly Usage` widgets (`cc /usage` integration).</Text>
+                    <Text dimColor>Install tmux and restart ccstatusline:</Text>
+                    {tmuxStatus.installHints.map(hint => (
+                        <Text key={hint} dimColor>
+                            {'  '}
+                            •
+                            {' '}
+                            {hint}
+                        </Text>
+                    ))}
+                </Box>
+            )}
 
             <Box marginTop={1}>
                 {screen === 'main' && (

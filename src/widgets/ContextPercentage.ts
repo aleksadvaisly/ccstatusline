@@ -11,8 +11,8 @@ import { getCCUsageStatus } from '../utils/ccusage';
 
 export class ContextPercentageWidget implements Widget {
     getDefaultColor(): string { return 'blue'; }
-    getDescription(): string { return 'Shows context usage percentage (200k window) or ccusage weekly/session reset metrics'; }
-    getDisplayName(): string { return 'Context %'; }
+    getDescription(): string { return 'Shows context usage percentage (200k window)'; }
+    getDisplayName(): string { return 'Session Usage'; }
 
     getAvailableStyles(): DisplayStyle[] {
         return [
@@ -22,11 +22,7 @@ export class ContextPercentageWidget implements Widget {
             { id: 'remaining-long', label: 'Context remaining: 91%' },
             { id: 'used-plain', label: '9%' },
             { id: 'used-short', label: 'Used: 9%' },
-            { id: 'used-long', label: 'Context used: 9%' },
-            { id: 'weekly-used-reset', label: 'weekly 10% Fri 8:00 AM' },
-            { id: 'weekly-left-reset', label: 'weekly 90% Fri 8:00 AM (left)' },
-            { id: 'session-reset-used', label: '1 hr 37 min 31%' },
-            { id: 'session-reset-left', label: '1 hr 37 min 69% (left)' }
+            { id: 'used-long', label: 'Context used: 9%' }
         ];
     }
 
@@ -51,6 +47,7 @@ export class ContextPercentageWidget implements Widget {
         const isSessionStyle = style === 'session-reset-used' || style === 'session-reset-left';
         const isLeftStyle = style === 'weekly-left-reset' || style === 'session-reset-left';
 
+        // Legacy compatibility for existing configs that still use old ccusage styles
         if (isWeeklyStyle || isSessionStyle) {
             if (context.isPreview) {
                 if (style === 'weekly-used-reset')

@@ -71,8 +71,10 @@ export CLAUDE_CONFIG_DIR=/custom/path/to/.claude
 - Output Style
 - Token metrics (input, output, cached, total)
 - Context Length
-- Context Percentage (200k limit)
+- Session Usage (context %, 200k limit)
 - Context Percentage Usable (160k before auto-compact)
+- Weekly Usage (cc /usage weekly reset)
+- 5h Usage (cc /usage session reset)
 - Terminal Width
 - Custom Text
 - Custom Command (shell command output)

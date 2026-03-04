@@ -54,9 +54,28 @@ export interface CCUsageStatus {
     timestamp?: string;
     weeklyPercent?: number;
     weeklyReset?: string;
+    weeklyResetCli?: string;
     sessionPercent?: number;
     sessionReset?: string;
+    sessionResetCli?: string;
 }
+
+const BUILTIN_CCUSAGE_SAMPLE: CCUsageStatus = {
+    timestamp: '2026-03-04T11:58:04+01:00',
+    weeklyPercent: 51,
+    weeklyReset: 'Resets Fri 8:00am',
+    weeklyResetCli: 'Resets Mar 6 at 8am',
+    sessionPercent: 9,
+    sessionReset: 'Resets in 4h 2m',
+    sessionResetCli: 'Resets 4pm'
+};
+
+export interface TmuxStatus {
+    available: boolean;
+    installHints: string[];
+}
+
+let cachedTmuxStatus: TmuxStatus | null = null;
 
 export function installCCUsageScript(): boolean {
     fs.mkdirSync(USAGE_DIR, { recursive: true });
@@ -105,6 +124,41 @@ export function getCCUsageStatus(): CCUsageStatus | null {
     return cached;
 }
 
+export function getCCUsageStatusForPreview(): CCUsageStatus {
+    const current = readUsageCache();
+    if (!current)
+        return { ...BUILTIN_CCUSAGE_SAMPLE };
+
+    return {
+        ...BUILTIN_CCUSAGE_SAMPLE,
+        ...current
+    };
+}
+
+export function getTmuxStatus(): TmuxStatus {
+    if (cachedTmuxStatus)
+        return cachedTmuxStatus;
+
+    let available = false;
+    try {
+        execFileSync('tmux', ['-V'], { stdio: ['ignore', 'ignore', 'ignore'] });
+        available = true;
+    } catch {
+        available = false;
+    }
+
+    cachedTmuxStatus = {
+        available,
+        installHints: [
+            'macOS: brew install tmux',
+            'Linux (Debian/Ubuntu): sudo apt update && sudo apt install -y tmux',
+            'Linux (Fedora/RHEL): sudo dnf install tmux'
+        ]
+    };
+
+    return cachedTmuxStatus;
+}
+
 function readUsageCache(): CCUsageStatus | null {
     try {
         const raw = fs.readFileSync(USAGE_CACHE_PATH, 'utf8');
@@ -122,8 +176,10 @@ function parseUsageJson(raw: string): CCUsageStatus | null {
             timestamp: typeof parsed.timestamp === 'string' ? parsed.timestamp : undefined,
             weeklyPercent: typeof parsed.weekly_percent === 'number' ? parsed.weekly_percent : undefined,
             weeklyReset: typeof parsed.weekly_reset === 'string' ? parsed.weekly_reset : undefined,
+            weeklyResetCli: typeof parsed.weekly_reset_cli === 'string' ? parsed.weekly_reset_cli : undefined,
             sessionPercent: typeof parsed.session_percent === 'number' ? parsed.session_percent : undefined,
-            sessionReset: typeof parsed.session_reset === 'string' ? parsed.session_reset : undefined
+            sessionReset: typeof parsed.session_reset === 'string' ? parsed.session_reset : undefined,
+            sessionResetCli: typeof parsed.session_reset_cli === 'string' ? parsed.session_reset_cli : undefined
         };
     } catch {
         return null;

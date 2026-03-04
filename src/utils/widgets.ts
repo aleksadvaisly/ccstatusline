@@ -23,6 +23,8 @@ const widgetRegistry = new Map<WidgetItemType, Widget>([
     ['context-length', new widgets.ContextLengthWidget()],
     ['context-percentage', new widgets.ContextPercentageWidget()],
     ['context-percentage-usable', new widgets.ContextPercentageUsableWidget()],
+    ['weekly-usage', new widgets.WeeklyUsageWidget()],
+    ['session-usage', new widgets.SessionUsageWidget()],
     ['session-clock', new widgets.SessionClockWidget()],
     ['session-cost', new widgets.SessionCostWidget()],
     ['wall-clock', new widgets.WallClockWidget()],
