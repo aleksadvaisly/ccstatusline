@@ -48,6 +48,7 @@ export CLAUDE_CONFIG_DIR=/custom/path/to/.claude
 ## Features
 
 - Real-time metrics: model name, git branch, token usage, session duration, block timer
+- Optional `tmux`-backed Claude Code integrations for `cc /usage` and `cc /model` data (cached in `~/.ccstatusline`)
 - Powerline mode with arrow separators and custom fonts
 - Multi-line support
 - Interactive TUI for configuration
@@ -58,7 +59,7 @@ export CLAUDE_CONFIG_DIR=/custom/path/to/.claude
 
 ## Available Widgets
 
-- Model Name
+- Model Name (including optional `Model + effort` style from `cc /model`)
 - Git Branch
 - Git Changes (insertions, deletions, commits ahead, untracked files)
 - Git Worktree
@@ -81,6 +82,19 @@ export CLAUDE_CONFIG_DIR=/custom/path/to/.claude
 - Separator (|, -, comma, space)
 - Flex Separator (expands to fill space)
 
+## Claude Integrations
+
+Some widget styles use Claude Code screens captured via `tmux`.
+
+- `Model` has an optional style that renders `Model Effort` (for example `Opus 4.6 Medium`) using `cc /model`
+- `Weekly Usage` and `5h Usage` use `cc /usage`
+- `Context %` also includes styles that render weekly/session usage and reset information from the same cache
+- Data is cached in `~/.ccstatusline/usage.json`
+- Refresh runs in the background and is rate-limited to once per 10 minutes
+- `~/.ccstatusline/usage.lock` prevents duplicate refreshes, with stale lock recovery after 5 minutes
+
+If `tmux` is unavailable, standard widgets still work, but these Claude-integrated styles will not refresh.
+
 ## Terminal Width Options
 
 - Full width always
@@ -92,6 +106,7 @@ export CLAUDE_CONFIG_DIR=/custom/path/to/.claude
 Requirements:
 - Node.js 18+
 - Git
+- `tmux` (only needed for Claude-integrated usage/model widgets)
 
 ### Setup
 

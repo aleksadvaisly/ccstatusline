@@ -168,14 +168,73 @@ WEEKLY_RESET_CLI="$WEEKLY_RESET"
 SESSION_RESET_NORM=$(normalize_reset "$SESSION_RESET")
 WEEKLY_RESET_NORM=$(normalize_weekly "$WEEKLY_RESET")
 
+MODEL_SESSION="cc-model-$$"
+RAW_LOG="$(mktemp)"
+CLEAN_LOG="$(mktemp)"
+
+cleanup_model_capture() {
+  tmux pipe-pane -t "$MODEL_SESSION" 2>/dev/null || true
+  tmux kill-session -t "$MODEL_SESSION" 2>/dev/null || true
+  rm -f "$RAW_LOG" "$CLEAN_LOG"
+}
+
+tmux new-session -d -s "$MODEL_SESSION" -x 140 -y 50
+tmux pipe-pane -o -t "$MODEL_SESSION" "cat > '$RAW_LOG'"
+tmux send-keys -t "$MODEL_SESSION" "cd \"$WORKDIR\" && unset CLAUDECODE; claude /model" Enter
+
+sleep 5
+tmux send-keys -t "$MODEL_SESSION" Escape
+sleep 1
+
+tmux pipe-pane -t "$MODEL_SESSION" 2>/dev/null || true
+tmux kill-session -t "$MODEL_SESSION" 2>/dev/null || true
+
+LC_ALL=C LANG=C perl -0pe '
+  s/\e\][^\a]*(?:\a|\e\\)//gs;
+  s/\e\[[0-9;?]*[ -\/]*[@-~]//g;
+  s/\r/\n/g;
+  s/[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]//g;
+' "$RAW_LOG" > "$CLEAN_LOG"
+
+extract_model() {
+  awk '
+    match($0, /(Opus|Sonnet|Haiku)[[:space:]]*[0-9]+\.[0-9]+/) {
+      value = substr($0, RSTART, RLENGTH)
+      if (value ~ /^Opus[0-9]/) sub(/^Opus/, "Opus ", value)
+      if (value ~ /^Sonnet[0-9]/) sub(/^Sonnet/, "Sonnet ", value)
+      if (value ~ /^Haiku[0-9]/) sub(/^Haiku/, "Haiku ", value)
+      print value
+      exit
+    }
+  ' "$CLEAN_LOG"
+}
+
+extract_effort() {
+  awk '
+    match($0, /(Low|Medium|High)[[:space:]]*effort/) {
+      value = substr($0, RSTART, RLENGTH)
+      sub(/[[:space:]]*effort$/, "", value)
+      print value
+      exit
+    }
+  ' "$CLEAN_LOG"
+}
+
+MODEL_NAME=$(extract_model || true)
+MODEL_EFFORT=$(extract_effort || true)
+
+cleanup_model_capture
+
 TIMESTAMP=$(date +"%Y-%m-%dT%H:%M:%S%z" | sed -E 's/([0-9]{2})([0-9]{2})$/\1:\2/')
 json_str() { if [[ -n "$1" ]]; then printf '"%s"' "$1"; else printf 'null'; fi; }
 
-printf '{"timestamp":"%s","weekly_percent":%s,"weekly_reset":%s,"weekly_reset_cli":%s,"session_percent":%s,"session_reset":%s,"session_reset_cli":%s}\n' \
+printf '{"timestamp":"%s","weekly_percent":%s,"weekly_reset":%s,"weekly_reset_cli":%s,"session_percent":%s,"session_reset":%s,"session_reset_cli":%s,"model":%s,"effort":%s}\n' \
   "$TIMESTAMP" \
   "${WEEKLY_PCT:-null}" \
   "$(json_str "$WEEKLY_RESET_NORM")" \
   "$(json_str "$WEEKLY_RESET_CLI")" \
   "${SESSION_PCT:-null}" \
   "$(json_str "$SESSION_RESET_NORM")" \
-  "$(json_str "$SESSION_RESET_CLI")"
+  "$(json_str "$SESSION_RESET_CLI")" \
+  "$(json_str "$MODEL_NAME")" \
+  "$(json_str "$MODEL_EFFORT")"

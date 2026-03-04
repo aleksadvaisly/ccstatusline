@@ -6,6 +6,10 @@ import type {
     WidgetEditorDisplay,
     WidgetItem
 } from '../types/Widget';
+import {
+    getCCUsageStatus,
+    getCCUsageStatusForPreview
+} from '../utils/ccusage';
 
 export class ModelWidget implements Widget {
     getDefaultColor(): string { return 'cyan'; }
@@ -27,17 +31,31 @@ export class ModelWidget implements Widget {
         return [
             { id: 'labeled', label: 'Model: Sonnet 4.5' },
             { id: 'plain', label: 'Sonnet 4.5' },
-            { id: 'bracketed', label: '[Sonnet 4.5]' }
+            { id: 'bracketed', label: '[Sonnet 4.5]' },
+            { id: 'name-effort', label: 'Sonnet 4.5 Medium' }
         ];
     }
 
     render(item: WidgetItem, context: RenderContext, settings: Settings): string | null {
         const modelName = context.isPreview ? 'Sonnet 4.5' : context.data?.model?.display_name;
-        if (!modelName)
-            return null;
 
         // Support legacy rawValue
         const style = item.displayStyle ?? (item.rawValue ? 'plain' : 'labeled');
+
+        if (style === 'name-effort') {
+            const ccUsage = context.isPreview ? getCCUsageStatusForPreview() : getCCUsageStatus();
+            const effortModelName = modelName ?? ccUsage?.model;
+            if (!effortModelName)
+                return null;
+
+            if (!ccUsage?.effort)
+                return effortModelName;
+
+            return `${effortModelName} ${ccUsage.effort}`;
+        }
+
+        if (!modelName)
+            return null;
 
         switch (style) {
         case 'plain':

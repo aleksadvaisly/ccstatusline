@@ -58,6 +58,8 @@ export interface CCUsageStatus {
     sessionPercent?: number;
     sessionReset?: string;
     sessionResetCli?: string;
+    model?: string;
+    effort?: string;
 }
 
 const BUILTIN_CCUSAGE_SAMPLE: CCUsageStatus = {
@@ -67,7 +69,9 @@ const BUILTIN_CCUSAGE_SAMPLE: CCUsageStatus = {
     weeklyResetCli: 'Resets Mar 6 at 8am',
     sessionPercent: 9,
     sessionReset: 'Resets in 4h 2m',
-    sessionResetCli: 'Resets 4pm'
+    sessionResetCli: 'Resets 4pm',
+    model: 'Sonnet 4.5',
+    effort: 'Medium'
 };
 
 export interface TmuxStatus {
@@ -130,8 +134,15 @@ export function getCCUsageStatusForPreview(): CCUsageStatus {
         return { ...BUILTIN_CCUSAGE_SAMPLE };
 
     return {
-        ...BUILTIN_CCUSAGE_SAMPLE,
-        ...current
+        timestamp: current.timestamp ?? BUILTIN_CCUSAGE_SAMPLE.timestamp,
+        weeklyPercent: current.weeklyPercent ?? BUILTIN_CCUSAGE_SAMPLE.weeklyPercent,
+        weeklyReset: current.weeklyReset ?? BUILTIN_CCUSAGE_SAMPLE.weeklyReset,
+        weeklyResetCli: current.weeklyResetCli ?? BUILTIN_CCUSAGE_SAMPLE.weeklyResetCli,
+        sessionPercent: current.sessionPercent ?? BUILTIN_CCUSAGE_SAMPLE.sessionPercent,
+        sessionReset: current.sessionReset ?? BUILTIN_CCUSAGE_SAMPLE.sessionReset,
+        sessionResetCli: current.sessionResetCli ?? BUILTIN_CCUSAGE_SAMPLE.sessionResetCli,
+        model: current.model ?? BUILTIN_CCUSAGE_SAMPLE.model,
+        effort: current.effort ?? BUILTIN_CCUSAGE_SAMPLE.effort
     };
 }
 
@@ -179,7 +190,9 @@ function parseUsageJson(raw: string): CCUsageStatus | null {
             weeklyResetCli: typeof parsed.weekly_reset_cli === 'string' ? parsed.weekly_reset_cli : undefined,
             sessionPercent: typeof parsed.session_percent === 'number' ? parsed.session_percent : undefined,
             sessionReset: typeof parsed.session_reset === 'string' ? parsed.session_reset : undefined,
-            sessionResetCli: typeof parsed.session_reset_cli === 'string' ? parsed.session_reset_cli : undefined
+            sessionResetCli: typeof parsed.session_reset_cli === 'string' ? parsed.session_reset_cli : undefined,
+            model: typeof parsed.model === 'string' ? parsed.model : undefined,
+            effort: typeof parsed.effort === 'string' ? parsed.effort : undefined
         };
     } catch {
         return null;
