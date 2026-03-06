@@ -91,7 +91,8 @@ Some widget styles use Claude Code screens captured via `tmux`.
 - `Context %` also includes styles that render weekly/session usage and reset information from the same cache
 - Data is cached in `~/.ccstatusline/usage.json`
 - Refresh runs in the background and is rate-limited to once per 10 minutes
-- `~/.ccstatusline/usage.lock` prevents duplicate refreshes, with stale lock recovery after 5 minutes
+- `~/.ccstatusline/cc-usage-tmux.sh` is responsible for writing `usage.json`, creating/removing `usage.lock`, and stale lock recovery after 5 minutes
+- `--std-out` mode on that script prints JSON only (no cache write and no lock)
 
 If `tmux` is unavailable, standard widgets still work, but these Claude-integrated styles will not refresh.
 
