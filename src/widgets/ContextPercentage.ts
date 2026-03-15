@@ -59,7 +59,7 @@ export class ContextPercentageWidget implements Widget {
                 return '1 hr 37 min 31%';
             }
 
-            const usageStatus = getCCUsageStatus();
+            const usageStatus = getCCUsageStatus(context.cwd);
             if (!usageStatus)
                 return null;
 

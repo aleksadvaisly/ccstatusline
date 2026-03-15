@@ -49,7 +49,7 @@ export class WeeklyUsageWidget implements Widget {
             );
         }
 
-        const usageStatus = getCCUsageStatus();
+        const usageStatus = getCCUsageStatus(context.cwd);
         if (!usageStatus)
             return null;
 

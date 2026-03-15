@@ -4,17 +4,19 @@ set -euo pipefail
 SESSION="cc-usage-$$"
 WORKDIR="${HOME}/.ccstatusline"
 USAGE_DIR="${HOME}/.ccstatusline"
-USAGE_CACHE_PATH="${USAGE_DIR}/usage.json"
-USAGE_CACHE_TMP_PATH="${USAGE_DIR}/usage.json.tmp"
-USAGE_LOCK_PATH="${USAGE_DIR}/usage.lock"
-STALE_LOCK_SECONDS=300
 STDOUT_ONLY=false
+CWD=""
+STALE_SECONDS=600
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --std-out)
       STDOUT_ONLY=true
       shift
+      ;;
+    --cwd)
+      CWD="$2"
+      shift 2
       ;;
     *)
       echo "Unknown argument: $1" >&2
@@ -23,66 +25,42 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
+slugify_cwd() {
+  local p="$1"
+  p="${p#"${HOME}/"}"
+  p="${p#"${HOME}"}"
+  p=$(echo "$p" | tr '[:upper:]' '[:lower:]' | tr '/ ' '-')
+  p="${p#-}"
+  p="${p%-}"
+  echo "$p"
+}
+
+if [[ -n "$CWD" ]]; then
+  SLUG=$(slugify_cwd "$CWD")
+  USAGE_CACHE_PATH="${USAGE_DIR}/usage-${SLUG}.json"
+  USAGE_CACHE_TMP_PATH="${USAGE_DIR}/usage-${SLUG}.json.tmp"
+else
+  USAGE_CACHE_PATH="${USAGE_DIR}/usage.json"
+  USAGE_CACHE_TMP_PATH="${USAGE_DIR}/usage.json.tmp"
+fi
+
 timestamp_now() {
   date +"%Y-%m-%dT%H:%M:%S%z" | sed -E 's/([0-9]{2})([0-9]{2})$/\1:\2/'
 }
 
-iso_to_epoch() {
-  local iso="$1"
-  local normalized
-  normalized=$(echo "$iso" | sed -E 's/([+-][0-9]{2}):([0-9]{2})$/\1\2/')
-  date -j -f "%Y-%m-%dT%H:%M:%S%z" "$normalized" +%s 2>/dev/null
-}
-
-cleanup_lock() {
-  if [[ "$STDOUT_ONLY" == true ]]; then
-    return
-  fi
-  rm -f "$USAGE_LOCK_PATH" 2>/dev/null || true
-}
-
-acquire_lock() {
-  if [[ "$STDOUT_ONLY" == true ]]; then
-    return 0
-  fi
-
-  mkdir -p "$USAGE_DIR"
-
-  if [[ -f "$USAGE_LOCK_PATH" ]]; then
-    local lock_ts lock_pid lock_epoch now_epoch age
-    lock_ts=$(awk -F'"' '/"timestamp"/{print $4; exit}' "$USAGE_LOCK_PATH" 2>/dev/null || true)
-    lock_pid=$(awk -F'[: ,}]+' '/"pid"/{gsub(/[^0-9]/, "", $3); print $3; exit}' "$USAGE_LOCK_PATH" 2>/dev/null || true)
-    now_epoch=$(date +%s)
-
-    lock_epoch=0
-    if [[ -n "$lock_ts" ]]; then
-      lock_epoch=$(iso_to_epoch "$lock_ts" || echo 0)
-    fi
-
-    age=$((now_epoch - lock_epoch))
-    if [[ "$lock_epoch" -gt 0 && "$age" -lt "$STALE_LOCK_SECONDS" ]]; then
-      return 1
-    fi
-
-    if [[ -n "$lock_pid" ]]; then
-      kill -9 "$lock_pid" 2>/dev/null || true
-    else
-      pkill -9 -f "$0" 2>/dev/null || true
-    fi
-    rm -f "$USAGE_LOCK_PATH" 2>/dev/null || true
-  fi
-
-  if ( set -o noclobber; printf '{"timestamp":"%s","pid":%s}\n' "$(timestamp_now)" "$$" > "$USAGE_LOCK_PATH" ) 2>/dev/null; then
-    trap cleanup_lock EXIT INT TERM
-    return 0
-  fi
-
-  return 1
-}
-
 mkdir -p "$WORKDIR"
-if ! acquire_lock; then
-  exit 0
+
+if [[ "$STDOUT_ONLY" == false && -f "$USAGE_CACHE_PATH" ]]; then
+  NOW_EPOCH=$(date +%s)
+  FILE_EPOCH=$(stat -f %m "$USAGE_CACHE_PATH" 2>/dev/null || echo 0)
+  AGE=$((NOW_EPOCH - FILE_EPOCH))
+  if [[ "$AGE" -lt "$STALE_SECONDS" ]]; then
+    exit 0
+  fi
+fi
+
+if [[ "$STDOUT_ONLY" == false ]]; then
+  touch "$USAGE_CACHE_PATH"
 fi
 
 tmux new-session -d -s "$SESSION" -x 120 -y 40

@@ -43,7 +43,7 @@ export class ModelWidget implements Widget {
         const style = item.displayStyle ?? (item.rawValue ? 'plain' : 'labeled');
 
         if (style === 'name-effort') {
-            const ccUsage = context.isPreview ? getCCUsageStatusForPreview() : getCCUsageStatus();
+            const ccUsage = context.isPreview ? getCCUsageStatusForPreview() : getCCUsageStatus(context.cwd);
             const effortModelName = modelName ?? ccUsage?.model;
             if (!effortModelName)
                 return null;

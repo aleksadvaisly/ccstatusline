@@ -11,7 +11,6 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const USAGE_DIR = path.join(os.homedir(), '.ccstatusline');
-const USAGE_CACHE_PATH = path.join(USAGE_DIR, 'usage.json');
 const USAGE_SCRIPT_PATH = path.join(USAGE_DIR, 'cc-usage-tmux.sh');
 const FRESH_CACHE_MS = 10 * 60 * 1000;
 
@@ -46,6 +45,27 @@ export interface TmuxStatus {
 
 let cachedTmuxStatus: TmuxStatus | null = null;
 
+function slugifyCwd(cwd: string): string {
+    const home = os.homedir();
+    let p = cwd;
+    if (p.startsWith(home + '/'))
+        p = p.slice(home.length + 1);
+    else if (p === home)
+        p = '';
+    p = p.toLowerCase().replace(/[/ ]/g, '-');
+    p = p.replace(/^-+/, '').replace(/-+$/, '');
+    return p;
+}
+
+function usageCachePath(cwd?: string): string {
+    if (!cwd)
+        return path.join(USAGE_DIR, 'usage.json');
+    const slug = slugifyCwd(cwd);
+    if (!slug)
+        return path.join(USAGE_DIR, 'usage.json');
+    return path.join(USAGE_DIR, `usage-${slug}.json`);
+}
+
 export function installCCUsageScript(): boolean {
     fs.mkdirSync(USAGE_DIR, { recursive: true });
 
@@ -62,22 +82,23 @@ export function installCCUsageScript(): boolean {
     }
 }
 
-export function getCCUsageStatus(): CCUsageStatus | null {
+export function getCCUsageStatus(cwd?: string): CCUsageStatus | null {
     fs.mkdirSync(USAGE_DIR, { recursive: true });
 
-    const cached = readUsageCache();
-    if (isFresh(cached))
+    const cachePath = usageCachePath(cwd);
+    const cached = readUsageCache(cachePath);
+    if (isFresh(cachePath))
         return cached;
 
     if (!fs.existsSync(USAGE_SCRIPT_PATH))
         return cached;
 
-    launchRefresh();
+    launchRefresh(cwd);
     return cached;
 }
 
 export function getCCUsageStatusForPreview(): CCUsageStatus {
-    const current = readUsageCache();
+    const current = readUsageCache(usageCachePath());
     if (!current)
         return { ...BUILTIN_CCUSAGE_SAMPLE };
 
@@ -118,9 +139,9 @@ export function getTmuxStatus(): TmuxStatus {
     return cachedTmuxStatus;
 }
 
-function readUsageCache(): CCUsageStatus | null {
+function readUsageCache(cachePath: string): CCUsageStatus | null {
     try {
-        const raw = fs.readFileSync(USAGE_CACHE_PATH, 'utf8');
+        const raw = fs.readFileSync(cachePath, 'utf8');
         return parseUsageJson(raw);
     } catch {
         return null;
@@ -147,20 +168,22 @@ function parseUsageJson(raw: string): CCUsageStatus | null {
     }
 }
 
-function isFresh(status: CCUsageStatus | null): boolean {
-    if (!status?.timestamp)
+function isFresh(cachePath: string): boolean {
+    try {
+        const stat = fs.statSync(cachePath);
+        return Date.now() - stat.mtimeMs < FRESH_CACHE_MS;
+    } catch {
         return false;
-
-    const timestampMs = Date.parse(status.timestamp);
-    if (!Number.isFinite(timestampMs))
-        return false;
-
-    return Date.now() - timestampMs < FRESH_CACHE_MS;
+    }
 }
 
-function launchRefresh(): void {
+function launchRefresh(cwd?: string): void {
     try {
-        const child = spawn('bash', [USAGE_SCRIPT_PATH], {
+        const args = [USAGE_SCRIPT_PATH];
+        if (cwd)
+            args.push('--cwd', cwd);
+
+        const child = spawn('bash', args, {
             detached: true,
             stdio: 'ignore'
         });
