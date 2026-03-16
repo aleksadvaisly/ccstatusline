@@ -8,10 +8,11 @@ import type {
     WidgetItem
 } from '../types/Widget';
 import { getCCUsageStatus } from '../utils/ccusage';
+import { getContextWindow } from '../utils/renderer';
 
 export class ContextPercentageWidget implements Widget {
     getDefaultColor(): string { return 'blue'; }
-    getDescription(): string { return 'Shows context usage percentage (200k window)'; }
+    getDescription(): string { return 'Shows context usage percentage'; }
     getDisplayName(): string { return 'Session Usage'; }
 
     getAvailableStyles(): DisplayStyle[] {
@@ -86,7 +87,7 @@ export class ContextPercentageWidget implements Widget {
             usedPercentage = 9.3;
             remainingPercentage = 90.7;
         } else if (context.tokenMetrics) {
-            usedPercentage = Math.min(100, (context.tokenMetrics.contextLength / 200000) * 100);
+            usedPercentage = Math.min(100, (context.tokenMetrics.contextLength / getContextWindow(context.data?.model?.id)) * 100);
             remainingPercentage = 100 - usedPercentage;
         } else {
             return null;

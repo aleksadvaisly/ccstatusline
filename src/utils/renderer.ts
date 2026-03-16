@@ -37,6 +37,19 @@ function isFlexSeparator(widget: WidgetItem): boolean {
     return getWidgetCategory(widget) === 'dynamic';
 }
 
+export function getContextWindow(modelId?: string): number {
+    if (!modelId)
+        return 200000;
+    const match = /\[(\d+)(k|m)\]$/i.exec(modelId);
+    if (!match)
+        return 200000;
+    const [, digits, unit] = match;
+    if (!digits || !unit)
+        return 200000;
+    const value = parseInt(digits, 10);
+    return unit.toLowerCase() === 'm' ? value * 1000000 : value * 1000;
+}
+
 // Helper function to format token counts
 export function formatTokens(count: number): string {
     if (count >= 1000000)
@@ -193,7 +206,7 @@ function renderPowerlineStatusLine(
             } else if (flexMode === 'full-until-compact') {
                 const threshold = settings.compactThreshold;
                 const contextPercentage = context.tokenMetrics
-                    ? Math.min(100, (context.tokenMetrics.contextLength / 200000) * 100) : 0;
+                    ? Math.min(100, (context.tokenMetrics.contextLength / getContextWindow(context.data?.model?.id)) * 100) : 0;
 
                 if (contextPercentage >= threshold) {
                     terminalWidth = detectedWidth - 40;
@@ -795,7 +808,7 @@ export function renderStatusLine(
                 // Check context percentage to decide
                 const threshold = settings.compactThreshold;
                 const contextPercentage = context.tokenMetrics
-                    ? Math.min(100, (context.tokenMetrics.contextLength / 200000) * 100) : 0;
+                    ? Math.min(100, (context.tokenMetrics.contextLength / getContextWindow(context.data?.model?.id)) * 100) : 0;
 
                 if (contextPercentage >= threshold) {
                     // Context is high, leave space for auto-compact
