@@ -9,6 +9,8 @@ CWD=""
 SLUG=""
 STALE_SECONDS=600
 WATCHDOG_PID=""
+SCRIPT_OK=false
+TIMED_OUT=false
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -65,22 +67,35 @@ log_msg() {
   echo "$(date '+%Y-%m-%d %H:%M:%S') [$$] $1" >> "$USAGE_LOG_PATH"
 }
 
-cleanup_marker() {
+cleanup() {
+  [[ "$STDOUT_ONLY" == true ]] && return
+  kill $WATCHDOG_PID 2>/dev/null || true
+  tmux kill-session -t "$SESSION" 2>/dev/null || true
+  tmux kill-session -t "cc-model-$$" 2>/dev/null || true
+  if [[ "$SCRIPT_OK" == true ]]; then
+    return
+  fi
   if [[ -f "$USAGE_CACHE_PATH" && ! -s "$USAGE_CACHE_PATH" ]]; then
     rm -f "$USAGE_CACHE_PATH"
     log_msg "removed empty marker"
   fi
+  if [[ "$TIMED_OUT" == true ]]; then
+    log_msg "TIMEOUT after 60s"
+  else
+    log_msg "FAIL"
+  fi
 }
-
-cleanup_on_timeout() {
-  tmux kill-session -t "$SESSION" 2>/dev/null || true
-  tmux kill-session -t "cc-model-$$" 2>/dev/null || true
-  cleanup_marker
-  log_msg "TIMEOUT after 60s"
-  exit 1
-}
+trap cleanup EXIT
 
 mkdir -p "$WORKDIR"
+
+NOW_EPOCH=$(date +%s)
+while IFS=: read -r name created_epoch; do
+  [[ "$name" == "$SESSION" || "$name" == "cc-model-$$" ]] && continue
+  if [[ $((NOW_EPOCH - created_epoch)) -gt 300 ]]; then
+    tmux kill-session -t "$name" 2>/dev/null || true
+  fi
+done < <(tmux ls -F '#{session_name}:#{session_created}' 2>/dev/null | grep -E '^cc-(usage|model)-')
 
 if [[ "$STDOUT_ONLY" == false && -f "$USAGE_CACHE_PATH" ]]; then
   NOW_EPOCH=$(date +%s)
@@ -92,9 +107,9 @@ if [[ "$STDOUT_ONLY" == false && -f "$USAGE_CACHE_PATH" ]]; then
 fi
 
 if [[ "$STDOUT_ONLY" == false ]]; then
-  ( sleep 60; kill -TERM $$ 2>/dev/null ) &
+  ( sleep 60; kill $$ 2>/dev/null ) &
   WATCHDOG_PID=$!
-  trap 'kill $WATCHDOG_PID 2>/dev/null; cleanup_on_timeout' TERM
+  trap 'TIMED_OUT=true; exit 1' TERM
   touch "$USAGE_CACHE_PATH"
   log_msg "START cwd=$CWD"
 fi
@@ -152,8 +167,6 @@ WEEKLY_RESET=$(extract_reset "Current week")
 
 if [[ -z "$SESSION_PCT" && -z "$WEEKLY_PCT" ]]; then
   echo "Failed to parse Claude usage screen" >&2
-  cleanup_marker
-  log_msg "FAIL: could not parse usage screen"
   exit 1
 fi
 
@@ -341,5 +354,5 @@ fi
 
 printf '%s\n' "$JSON_OUTPUT" > "$USAGE_CACHE_TMP_PATH"
 mv "$USAGE_CACHE_TMP_PATH" "$USAGE_CACHE_PATH"
-kill $WATCHDOG_PID 2>/dev/null || true
+SCRIPT_OK=true
 log_msg "OK"
