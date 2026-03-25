@@ -6,7 +6,9 @@ WORKDIR="${HOME}/.ccstatusline"
 USAGE_DIR="${HOME}/.ccstatusline"
 STDOUT_ONLY=false
 CWD=""
+SLUG=""
 STALE_SECONDS=600
+WATCHDOG_PID=""
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -38,6 +40,9 @@ slugify_cwd() {
 
 if [[ -n "$CWD" ]]; then
   SLUG=$(slugify_cwd "$CWD")
+fi
+
+if [[ -n "$SLUG" ]]; then
   USAGE_CACHE_PATH="${USAGE_DIR}/usage-${SLUG}.json"
   USAGE_CACHE_TMP_PATH="${USAGE_DIR}/usage-${SLUG}.json.tmp"
 else
@@ -45,8 +50,34 @@ else
   USAGE_CACHE_TMP_PATH="${USAGE_DIR}/usage.json.tmp"
 fi
 
+if [[ -n "$SLUG" ]]; then
+  USAGE_LOG_PATH="${USAGE_DIR}/usage-${SLUG}.log"
+else
+  USAGE_LOG_PATH="${USAGE_DIR}/usage.log"
+fi
+
 timestamp_now() {
   date +"%Y-%m-%dT%H:%M:%S%z" | sed -E 's/([0-9]{2})([0-9]{2})$/\1:\2/'
+}
+
+log_msg() {
+  [[ "$STDOUT_ONLY" == true ]] && return
+  echo "$(date '+%Y-%m-%d %H:%M:%S') [$$] $1" >> "$USAGE_LOG_PATH"
+}
+
+cleanup_marker() {
+  if [[ -f "$USAGE_CACHE_PATH" && ! -s "$USAGE_CACHE_PATH" ]]; then
+    rm -f "$USAGE_CACHE_PATH"
+    log_msg "removed empty marker"
+  fi
+}
+
+cleanup_on_timeout() {
+  tmux kill-session -t "$SESSION" 2>/dev/null || true
+  tmux kill-session -t "cc-model-$$" 2>/dev/null || true
+  cleanup_marker
+  log_msg "TIMEOUT after 60s"
+  exit 1
 }
 
 mkdir -p "$WORKDIR"
@@ -61,7 +92,11 @@ if [[ "$STDOUT_ONLY" == false && -f "$USAGE_CACHE_PATH" ]]; then
 fi
 
 if [[ "$STDOUT_ONLY" == false ]]; then
+  ( sleep 60; kill -TERM $$ 2>/dev/null ) &
+  WATCHDOG_PID=$!
+  trap 'kill $WATCHDOG_PID 2>/dev/null; cleanup_on_timeout' TERM
   touch "$USAGE_CACHE_PATH"
+  log_msg "START cwd=$CWD"
 fi
 
 tmux new-session -d -s "$SESSION" -x 120 -y 40
@@ -117,6 +152,8 @@ WEEKLY_RESET=$(extract_reset "Current week")
 
 if [[ -z "$SESSION_PCT" && -z "$WEEKLY_PCT" ]]; then
   echo "Failed to parse Claude usage screen" >&2
+  cleanup_marker
+  log_msg "FAIL: could not parse usage screen"
   exit 1
 fi
 
@@ -304,3 +341,5 @@ fi
 
 printf '%s\n' "$JSON_OUTPUT" > "$USAGE_CACHE_TMP_PATH"
 mv "$USAGE_CACHE_TMP_PATH" "$USAGE_CACHE_PATH"
+kill $WATCHDOG_PID 2>/dev/null || true
+log_msg "OK"
