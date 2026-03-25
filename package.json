@@ -1,6 +1,6 @@
 {
   "name": "ccstatusline",
-  "version": "26.0316.1540",
+  "version": "26.0325.0733",
   "description": "A customizable status line formatter for Claude Code CLI",
   "module": "src/ccstatusline.ts",
   "type": "module",

@@ -29,6 +29,7 @@ slugify_cwd() {
   local p="$1"
   p="${p#"${HOME}/"}"
   p="${p#"${HOME}"}"
+  [[ "$p" == .ccstatusline* ]] && { echo ""; return; }
   p=$(echo "$p" | tr '[:upper:]' '[:lower:]' | tr '/ ' '-')
   p="${p#-}"
   p="${p%-}"

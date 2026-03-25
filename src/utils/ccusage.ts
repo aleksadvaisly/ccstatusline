@@ -52,6 +52,8 @@ function slugifyCwd(cwd: string): string {
         p = p.slice(home.length + 1);
     else if (p === home)
         p = '';
+    if (p.startsWith('.ccstatusline'))
+        return '';
     p = p.toLowerCase().replace(/[/ ]/g, '-');
     p = p.replace(/^-+/, '').replace(/-+$/, '');
     return p;
