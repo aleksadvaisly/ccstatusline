@@ -21,7 +21,8 @@ export const StatusJSONSchema = z.looseObject({
         total_api_duration_ms: z.number().optional(),
         total_lines_added: z.number().optional(),
         total_lines_removed: z.number().optional()
-    }).optional()
+    }).optional(),
+    terminal_width: z.number().optional()
 });
 
 export type StatusJSON = z.infer<typeof StatusJSONSchema>;

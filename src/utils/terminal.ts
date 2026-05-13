@@ -40,33 +40,36 @@ export function getPackageVersion(): string {
 
 // Get terminal width
 export function getTerminalWidth(): number | null {
+    // Walk up the process tree until we find an ancestor with a real controlling TTY.
+    // Claude Code spawns the status command without a TTY, so the immediate parent often
+    // has tty='??'. The user's actual terminal is further up the tree.
     try {
-        // First try to get the tty of the parent process
-        const tty = execSync('ps -o tty= -p $(ps -o ppid= -p $$)', {
+        const script = `
+pid=$$
+for _ in 1 2 3 4 5 6 7 8; do
+    pid=$(ps -o ppid= -p $pid 2>/dev/null | tr -d ' ')
+    [ -z "$pid" ] && break
+    [ "$pid" = "0" ] && break
+    [ "$pid" = "1" ] && break
+    tty=$(ps -o tty= -p $pid 2>/dev/null | tr -d ' ')
+    if [ -n "$tty" ] && [ "$tty" != "??" ] && [ "$tty" != "?" ]; then
+        stty size < /dev/$tty 2>/dev/null | awk '{print $2}'
+        exit 0
+    fi
+done
+`;
+        const width = execSync(script, {
             encoding: 'utf8',
             stdio: ['pipe', 'pipe', 'ignore'],
             shell: '/bin/sh'
         }).trim();
 
-        // Check if we got a valid tty (not ?? which means no tty)
-        if (tty && tty !== '??' && tty !== '?') {
-            // Now get the terminal size
-            const width = execSync(
-                `stty size < /dev/${tty} | awk '{print $2}'`,
-                {
-                    encoding: 'utf8',
-                    stdio: ['pipe', 'pipe', 'ignore'],
-                    shell: '/bin/sh'
-                }
-            ).trim();
-
-            const parsed = parseInt(width, 10);
-            if (!isNaN(parsed) && parsed > 0) {
-                return parsed;
-            }
+        const parsed = parseInt(width, 10);
+        if (!isNaN(parsed) && parsed > 0) {
+            return parsed;
         }
     } catch {
-        // Command failed, width detection not available
+        // Walk failed, try other fallbacks
     }
 
     // Fallback: try tput cols which might work in some environments

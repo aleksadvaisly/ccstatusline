@@ -9,6 +9,7 @@ export interface RenderContext {
     sessionDuration?: string | null;
     blockMetrics?: BlockMetrics | null;
     terminalWidth?: number | null;
+    terminalWidthFromHost?: boolean;  // True when terminalWidth was provided by Claude Code via JSON (already usable, skip flex math)
     isPreview?: boolean;
     lineIndex?: number;  // Index of the current line being rendered (for theme cycling)
     globalSeparatorIndex?: number;  // Global separator index that continues across lines
