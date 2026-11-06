@@ -116,7 +116,7 @@ export class GitBranchWidget implements Widget {
 
     private hasGitChanges(cwd?: string): boolean {
         try {
-            const status = execSync('git status --porcelain', {
+            const status = execSync('git --no-optional-locks status --porcelain', {
                 encoding: 'utf8',
                 stdio: ['pipe', 'pipe', 'ignore'],
                 cwd

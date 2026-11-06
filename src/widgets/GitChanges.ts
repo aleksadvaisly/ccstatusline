@@ -102,7 +102,7 @@ export class GitChangesWidget implements Widget {
         let untracked = 0;
 
         try {
-            const statusOutput = execSync('git status --porcelain', {
+            const statusOutput = execSync('git --no-optional-locks status --porcelain', {
                 encoding: 'utf8',
                 stdio: ['pipe', 'pipe', 'ignore'],
                 cwd
