@@ -87,7 +87,7 @@ export class ContextPercentageWidget implements Widget {
             usedPercentage = 9.3;
             remainingPercentage = 90.7;
         } else if (context.tokenMetrics) {
-            usedPercentage = Math.min(100, (context.tokenMetrics.contextLength / getContextWindow(context.data?.model?.id)) * 100);
+            usedPercentage = Math.min(100, (context.tokenMetrics.contextLength / getContextWindow(context.data)) * 100);
             remainingPercentage = 100 - usedPercentage;
         } else {
             return null;

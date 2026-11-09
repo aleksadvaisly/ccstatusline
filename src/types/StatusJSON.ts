@@ -22,6 +22,7 @@ export const StatusJSONSchema = z.looseObject({
         total_lines_added: z.number().optional(),
         total_lines_removed: z.number().optional()
     }).optional(),
+    context_window: z.looseObject({ context_window_size: z.number().nullable().optional() }).nullable().optional(),
     terminal_width: z.number().optional()
 });
 

@@ -10,6 +10,7 @@ import type {
 } from '../types';
 import { getColorLevelString } from '../types/ColorLevel';
 import type { Settings } from '../types/Settings';
+import type { StatusJSON } from '../types/StatusJSON';
 import type { WidgetCategory } from '../types/Widget';
 
 import {
@@ -37,15 +38,23 @@ function isFlexSeparator(widget: WidgetItem): boolean {
     return getWidgetCategory(widget) === 'dynamic';
 }
 
-export function getContextWindow(modelId?: string): number {
+const DEFAULT_CONTEXT_WINDOW = 200000;
+
+// Claude Code reports the active model's window in context_window.context_window_size;
+// the model id suffix (e.g. "[1m]") is only a fallback for payloads without that field.
+export function getContextWindow(data?: StatusJSON): number {
+    const reported = data?.context_window?.context_window_size;
+    if (typeof reported === 'number' && reported > 0)
+        return reported;
+    const modelId = data?.model?.id;
     if (!modelId)
-        return 200000;
+        return DEFAULT_CONTEXT_WINDOW;
     const match = /\[(\d+)(k|m)\]$/i.exec(modelId);
     if (!match)
-        return 200000;
+        return DEFAULT_CONTEXT_WINDOW;
     const [, digits, unit] = match;
     if (!digits || !unit)
-        return 200000;
+        return DEFAULT_CONTEXT_WINDOW;
     const value = parseInt(digits, 10);
     return unit.toLowerCase() === 'm' ? value * 1000000 : value * 1000;
 }
@@ -210,7 +219,7 @@ function renderPowerlineStatusLine(
                 } else if (flexMode === 'full-until-compact') {
                     const threshold = settings.compactThreshold;
                     const contextPercentage = context.tokenMetrics
-                        ? Math.min(100, (context.tokenMetrics.contextLength / getContextWindow(context.data?.model?.id)) * 100) : 0;
+                        ? Math.min(100, (context.tokenMetrics.contextLength / getContextWindow(context.data)) * 100) : 0;
 
                     if (contextPercentage >= threshold) {
                         terminalWidth = detectedWidth - 40;
@@ -817,7 +826,7 @@ export function renderStatusLine(
                     // Check context percentage to decide
                     const threshold = settings.compactThreshold;
                     const contextPercentage = context.tokenMetrics
-                        ? Math.min(100, (context.tokenMetrics.contextLength / getContextWindow(context.data?.model?.id)) * 100) : 0;
+                        ? Math.min(100, (context.tokenMetrics.contextLength / getContextWindow(context.data)) * 100) : 0;
 
                     if (contextPercentage >= threshold) {
                         // Context is high, leave space for auto-compact
